@@ -109,6 +109,7 @@
 #![feature(macro_rules, globs, linkage)]
 #![feature(default_type_params, phase, lang_items, unsafe_destructor)]
 #![feature(import_shadowing, slicing_syntax)]
+#![feature(associated_types)]
 
 // Don't link to std. We are std.
 #![no_std]

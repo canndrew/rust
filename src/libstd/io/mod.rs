@@ -456,6 +456,7 @@ static NO_PROGRESS_LIMIT: uint = 1000;
 /// throughout the I/O and related libraries take and provide types which
 /// implement the `Reader` trait.
 pub trait Reader {
+    type Error = IoError;
 
     // Only method which need to get implemented for this trait
 
@@ -474,7 +475,7 @@ pub trait Reader {
     ///
     /// When implementing this method on a new Reader, you are strongly encouraged
     /// not to return 0 if you can avoid it.
-    fn read(&mut self, buf: &mut [u8]) -> IoResult<uint>;
+    fn read(&mut self, buf: &mut [u8]) -> Result<uint, <Self as Reader>::Error>;
 
     // Convenient helper methods based on the above methods
 
@@ -489,7 +490,7 @@ pub trait Reader {
     ///
     /// If an error occurs at any point, that error is returned, and no further
     /// bytes are read.
-    fn read_at_least(&mut self, min: uint, buf: &mut [u8]) -> IoResult<uint> {
+    fn read_at_least(&mut self, min: uint, buf: &mut [u8]) -> Result<uint, <Self as Reader>::Error> {
         if min > buf.len() {
             return Err(IoError {
                 detail: Some(String::from_str("the buffer is too short")),
@@ -519,7 +520,7 @@ pub trait Reader {
     }
 
     /// Reads a single byte. Returns `Err` on EOF.
-    fn read_byte(&mut self) -> IoResult<u8> {
+    fn read_byte(&mut self) -> Result<u8, <Self as Reader>::Error> {
         let mut buf = [0];
         try!(self.read_at_least(1, buf));
         Ok(buf[0])
@@ -533,7 +534,7 @@ pub trait Reader {
     ///
     /// If an error occurs during this I/O operation, then it is returned
     /// as `Err(IoError)`. See `read()` for more details.
-    fn push(&mut self, len: uint, buf: &mut Vec<u8>) -> IoResult<uint> {
+    fn push(&mut self, len: uint, buf: &mut Vec<u8>) -> Result<uint, <Self as Reader>::Error> {
         let start_len = buf.len();
         buf.reserve(len);
 
@@ -557,7 +558,7 @@ pub trait Reader {
     ///
     /// If an error occurs at any point, that error is returned, and no further
     /// bytes are read.
-    fn push_at_least(&mut self, min: uint, len: uint, buf: &mut Vec<u8>) -> IoResult<uint> {
+    fn push_at_least(&mut self, min: uint, len: uint, buf: &mut Vec<u8>) -> Result<uint, <Self as Reader>::Error> {
         if min > len {
             return Err(IoError {
                 detail: Some(String::from_str("the buffer is too short")),
@@ -592,7 +593,7 @@ pub trait Reader {
     /// have already been consumed from the underlying reader, and they are lost
     /// (not returned as part of the error). If this is unacceptable, then it is
     /// recommended to use the `push_at_least` or `read` methods.
-    fn read_exact(&mut self, len: uint) -> IoResult<Vec<u8>> {
+    fn read_exact(&mut self, len: uint) -> Result<Vec<u8>, <Self as Reader>::Error> {
         let mut buf = Vec::with_capacity(len);
         match self.push_at_least(len, len, &mut buf) {
             Ok(_) => Ok(buf),
@@ -608,7 +609,7 @@ pub trait Reader {
     /// discarded when an error is returned.
     ///
     /// When EOF is encountered, all bytes read up to that point are returned.
-    fn read_to_end(&mut self) -> IoResult<Vec<u8>> {
+    fn read_to_end(&mut self) -> Result<Vec<u8>, <Self as Reader>::Error> {
         let mut buf = Vec::with_capacity(DEFAULT_BUF_SIZE);
         loop {
             match self.push_at_least(1, DEFAULT_BUF_SIZE, &mut buf) {
@@ -628,7 +629,7 @@ pub trait Reader {
     /// This function returns all of the same errors as `read_to_end` with an
     /// additional error if the reader's contents are not a valid sequence of
     /// UTF-8 bytes.
-    fn read_to_string(&mut self) -> IoResult<String> {
+    fn read_to_string(&mut self) -> Result<String, <Self as Reader>::Error> {
         self.read_to_end().and_then(|s| {
             match String::from_utf8(s) {
                 Ok(s)  => Ok(s),
@@ -642,7 +643,7 @@ pub trait Reader {
     /// Reads `n` little-endian unsigned integer bytes.
     ///
     /// `n` must be between 1 and 8, inclusive.
-    fn read_le_uint_n(&mut self, nbytes: uint) -> IoResult<u64> {
+    fn read_le_uint_n(&mut self, nbytes: uint) -> Result<u64, <Self as Reader>::Error> {
         assert!(nbytes > 0 && nbytes <= 8);
 
         let mut val = 0u64;
@@ -659,14 +660,14 @@ pub trait Reader {
     /// Reads `n` little-endian signed integer bytes.
     ///
     /// `n` must be between 1 and 8, inclusive.
-    fn read_le_int_n(&mut self, nbytes: uint) -> IoResult<i64> {
+    fn read_le_int_n(&mut self, nbytes: uint) -> Result<i64, <Self as Reader>::Error> {
         self.read_le_uint_n(nbytes).map(|i| extend_sign(i, nbytes))
     }
 
     /// Reads `n` big-endian unsigned integer bytes.
     ///
     /// `n` must be between 1 and 8, inclusive.
-    fn read_be_uint_n(&mut self, nbytes: uint) -> IoResult<u64> {
+    fn read_be_uint_n(&mut self, nbytes: uint) -> Result<u64, <Self as Reader>::Error> {
         assert!(nbytes > 0 && nbytes <= 8);
 
         let mut val = 0u64;
@@ -681,84 +682,84 @@ pub trait Reader {
     /// Reads `n` big-endian signed integer bytes.
     ///
     /// `n` must be between 1 and 8, inclusive.
-    fn read_be_int_n(&mut self, nbytes: uint) -> IoResult<i64> {
+    fn read_be_int_n(&mut self, nbytes: uint) -> Result<i64, <Self as Reader>::Error> {
         self.read_be_uint_n(nbytes).map(|i| extend_sign(i, nbytes))
     }
 
     /// Reads a little-endian unsigned integer.
     ///
     /// The number of bytes returned is system-dependent.
-    fn read_le_uint(&mut self) -> IoResult<uint> {
+    fn read_le_uint(&mut self) -> Result<uint, <Self as Reader>::Error> {
         self.read_le_uint_n(uint::BYTES).map(|i| i as uint)
     }
 
     /// Reads a little-endian integer.
     ///
     /// The number of bytes returned is system-dependent.
-    fn read_le_int(&mut self) -> IoResult<int> {
+    fn read_le_int(&mut self) -> Result<int, <Self as Reader>::Error> {
         self.read_le_int_n(int::BYTES).map(|i| i as int)
     }
 
     /// Reads a big-endian unsigned integer.
     ///
     /// The number of bytes returned is system-dependent.
-    fn read_be_uint(&mut self) -> IoResult<uint> {
+    fn read_be_uint(&mut self) -> Result<uint, <Self as Reader>::Error> {
         self.read_be_uint_n(uint::BYTES).map(|i| i as uint)
     }
 
     /// Reads a big-endian integer.
     ///
     /// The number of bytes returned is system-dependent.
-    fn read_be_int(&mut self) -> IoResult<int> {
+    fn read_be_int(&mut self) -> Result<int, <Self as Reader>::Error> {
         self.read_be_int_n(int::BYTES).map(|i| i as int)
     }
 
     /// Reads a big-endian `u64`.
     ///
     /// `u64`s are 8 bytes long.
-    fn read_be_u64(&mut self) -> IoResult<u64> {
+    fn read_be_u64(&mut self) -> Result<u64, <Self as Reader>::Error> {
         self.read_be_uint_n(8)
     }
 
     /// Reads a big-endian `u32`.
     ///
     /// `u32`s are 4 bytes long.
-    fn read_be_u32(&mut self) -> IoResult<u32> {
+    fn read_be_u32(&mut self) -> Result<u32, <Self as Reader>::Error> {
         self.read_be_uint_n(4).map(|i| i as u32)
     }
 
     /// Reads a big-endian `u16`.
     ///
     /// `u16`s are 2 bytes long.
-    fn read_be_u16(&mut self) -> IoResult<u16> {
+    fn read_be_u16(&mut self) -> Result<u16, <Self as Reader>::Error> {
         self.read_be_uint_n(2).map(|i| i as u16)
     }
 
     /// Reads a big-endian `i64`.
     ///
     /// `i64`s are 8 bytes long.
-    fn read_be_i64(&mut self) -> IoResult<i64> {
+    fn read_be_i64(&mut self) -> Result<i64, <Self as Reader>::Error> {
         self.read_be_int_n(8)
     }
 
     /// Reads a big-endian `i32`.
     ///
     /// `i32`s are 4 bytes long.
-    fn read_be_i32(&mut self) -> IoResult<i32> {
+    fn read_be_i32(&mut self) -> Result<i32, <Self as Reader>::Error> {
         self.read_be_int_n(4).map(|i| i as i32)
     }
 
     /// Reads a big-endian `i16`.
     ///
     /// `i16`s are 2 bytes long.
-    fn read_be_i16(&mut self) -> IoResult<i16> {
+    fn read_be_i16(&mut self) -> Result<i16, <Self as Reader>::Error> {
         self.read_be_int_n(2).map(|i| i as i16)
     }
 
     /// Reads a big-endian `f64`.
     ///
     /// `f64`s are 8 byte, IEEE754 double-precision floating point numbers.
-    fn read_be_f64(&mut self) -> IoResult<f64> {
+    fn read_be_f64(&mut self) -> Result<f64, <Self as Reader>::Error> {
         self.read_be_u64().map(|i| unsafe {
             transmute::<u64, f64>(i)
         })
@@ -767,7 +768,7 @@ pub trait Reader {
     /// Reads a big-endian `f32`.
     ///
     /// `f32`s are 4 byte, IEEE754 single-precision floating point numbers.
-    fn read_be_f32(&mut self) -> IoResult<f32> {
+    fn read_be_f32(&mut self) -> Result<f32, <Self as Reader>::Error> {
         self.read_be_u32().map(|i| unsafe {
             transmute::<u32, f32>(i)
         })
@@ -776,49 +777,49 @@ pub trait Reader {
     /// Reads a little-endian `u64`.
     ///
     /// `u64`s are 8 bytes long.
-    fn read_le_u64(&mut self) -> IoResult<u64> {
+    fn read_le_u64(&mut self) -> Result<u64, <Self as Reader>::Error> {
         self.read_le_uint_n(8)
     }
 
     /// Reads a little-endian `u32`.
     ///
     /// `u32`s are 4 bytes long.
-    fn read_le_u32(&mut self) -> IoResult<u32> {
+    fn read_le_u32(&mut self) -> Result<u32, <Self as Reader>::Error> {
         self.read_le_uint_n(4).map(|i| i as u32)
     }
 
     /// Reads a little-endian `u16`.
     ///
     /// `u16`s are 2 bytes long.
-    fn read_le_u16(&mut self) -> IoResult<u16> {
+    fn read_le_u16(&mut self) -> Result<u16, <Self as Reader>::Error> {
         self.read_le_uint_n(2).map(|i| i as u16)
     }
 
     /// Reads a little-endian `i64`.
     ///
     /// `i64`s are 8 bytes long.
-    fn read_le_i64(&mut self) -> IoResult<i64> {
+    fn read_le_i64(&mut self) -> Result<i64, <Self as Reader>::Error> {
         self.read_le_int_n(8)
     }
 
     /// Reads a little-endian `i32`.
     ///
     /// `i32`s are 4 bytes long.
-    fn read_le_i32(&mut self) -> IoResult<i32> {
+    fn read_le_i32(&mut self) -> Result<i32, <Self as Reader>::Error> {
         self.read_le_int_n(4).map(|i| i as i32)
     }
 
     /// Reads a little-endian `i16`.
     ///
     /// `i16`s are 2 bytes long.
-    fn read_le_i16(&mut self) -> IoResult<i16> {
+    fn read_le_i16(&mut self) -> Result<i16, <Self as Reader>::Error> {
         self.read_le_int_n(2).map(|i| i as i16)
     }
 
     /// Reads a little-endian `f64`.
     ///
     /// `f64`s are 8 byte, IEEE754 double-precision floating point numbers.
-    fn read_le_f64(&mut self) -> IoResult<f64> {
+    fn read_le_f64(&mut self) -> Result<f64, <Self as Reader>::Error> {
         self.read_le_u64().map(|i| unsafe {
             transmute::<u64, f64>(i)
         })
@@ -827,7 +828,7 @@ pub trait Reader {
     /// Reads a little-endian `f32`.
     ///
     /// `f32`s are 4 byte, IEEE754 single-precision floating point numbers.
-    fn read_le_f32(&mut self) -> IoResult<f32> {
+    fn read_le_f32(&mut self) -> Result<f32, <Self as Reader>::Error> {
         self.read_le_u32().map(|i| unsafe {
             transmute::<u32, f32>(i)
         })
@@ -836,14 +837,14 @@ pub trait Reader {
     /// Read a u8.
     ///
     /// `u8`s are 1 byte.
-    fn read_u8(&mut self) -> IoResult<u8> {
+    fn read_u8(&mut self) -> Result<u8, <Self as Reader>::Error> {
         self.read_byte()
     }
 
     /// Read an i8.
     ///
     /// `i8`s are 1 byte.
-    fn read_i8(&mut self) -> IoResult<i8> {
+    fn read_i8(&mut self) -> Result<i8, <Self as Reader>::Error> {
         self.read_byte().map(|i| i as i8)
     }
 }
