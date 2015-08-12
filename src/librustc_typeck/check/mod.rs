@@ -1701,7 +1701,7 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
         for ty in &self.infcx().unsolved_variables() {
             let resolved = self.infcx().resolve_type_vars_if_possible(ty);
             if self.infcx().type_var_diverges(resolved) {
-                demand::eqtype(self, codemap::DUMMY_SP, *ty, self.tcx().mk_nil());
+                demand::eqtype(self, codemap::DUMMY_SP, *ty, self.tcx().mk_empty());
             } else {
                 match self.infcx().type_is_unconstrained_numeric(resolved) {
                     UnconstrainedInt => {
@@ -1770,7 +1770,7 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
             for ty in &unsolved_variables {
                 let resolved = self.infcx().resolve_type_vars_if_possible(ty);
                 if self.infcx().type_var_diverges(resolved) {
-                    demand::eqtype(self, codemap::DUMMY_SP, *ty, self.tcx().mk_nil());
+                    demand::eqtype(self, codemap::DUMMY_SP, *ty, self.tcx().mk_empty());
                 } else {
                     match self.infcx().type_is_unconstrained_numeric(resolved) {
                         UnconstrainedInt | UnconstrainedFloat => {
@@ -1827,7 +1827,7 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
             let _ = self.infcx().commit_if_ok(|_: &infer::CombinedSnapshot| {
                 for ty in &unbound_tyvars {
                     if self.infcx().type_var_diverges(ty) {
-                        demand::eqtype(self, codemap::DUMMY_SP, *ty, self.tcx().mk_nil());
+                        demand::eqtype(self, codemap::DUMMY_SP, *ty, self.tcx().mk_empty());
                     } else {
                         match self.infcx().type_is_unconstrained_numeric(ty) {
                             UnconstrainedInt => {
@@ -1919,7 +1919,7 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
         // reporting for more then one conflict.
         for ty in &unbound_tyvars {
             if self.infcx().type_var_diverges(ty) {
-                demand::eqtype(self, codemap::DUMMY_SP, *ty, self.tcx().mk_nil());
+                demand::eqtype(self, codemap::DUMMY_SP, *ty, self.tcx().mk_empty());
             } else {
                 match self.infcx().type_is_unconstrained_numeric(ty) {
                     UnconstrainedInt => {
