@@ -216,6 +216,8 @@ pub fn sizing_type_of<'a, 'tcx>(cx: &CrateContext<'a, 'tcx>, t: Ty<'tcx>) -> Typ
             Type::nil(cx)
         }
 
+        ty::TyEmpty => Type::nil(cx),
+
         ty::TyTuple(..) | ty::TyEnum(..) | ty::TyClosure(..) => {
             let repr = adt::represent_type(cx, t);
             adt::sizing_type_of(cx, &*repr, false)
@@ -403,6 +405,7 @@ pub fn in_memory_type_of<'a, 'tcx>(cx: &CrateContext<'a, 'tcx>, t: Ty<'tcx>) -> 
           let repr = adt::represent_type(cx, t);
           adt::type_of(cx, &*repr)
       }
+      ty::TyEmpty => Type::nil(cx),
       ty::TyStruct(def, ref substs) => {
           if t.is_simd() {
               let llet = in_memory_type_of(cx, t.simd_type(cx.tcx()));

@@ -18,7 +18,7 @@ use middle::ty::{TyBool, TyChar, TyStruct, TyEnum};
 use middle::ty::{TyError, TyStr, TyArray, TySlice, TyFloat, TyBareFn};
 use middle::ty::{TyParam, TyRawPtr, TyRef, TyTuple};
 use middle::ty::TyClosure;
-use middle::ty::{TyBox, TyTrait, TyInt, TyUint, TyInfer};
+use middle::ty::{TyBox, TyEmpty, TyTrait, TyInt, TyUint, TyInfer};
 use middle::ty::{self, TypeAndMut, Ty, HasTypeFlags};
 use middle::ty_fold::{self, TypeFoldable};
 
@@ -606,6 +606,7 @@ impl<'tcx> fmt::Display for ty::TypeVariants<'tcx> {
             TyUint(t) => write!(f, "{}", ast_util::uint_ty_to_string(t, None)),
             TyFloat(t) => write!(f, "{}", ast_util::float_ty_to_string(t)),
             TyBox(typ) => write!(f, "Box<{}>",  typ),
+            TyEmpty => write!(f, "!"),
             TyRawPtr(ref tm) => {
                 write!(f, "*{} {}", match tm.mutbl {
                     ast::MutMutable => "mut",

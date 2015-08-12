@@ -1573,6 +1573,7 @@ pub fn ast_ty_to_ty<'tcx>(this: &AstConv<'tcx>,
                              .collect();
             tcx.mk_tup(flds)
         }
+        ast::TyEmpty => tcx.mk_empty(),
         ast::TyParen(ref typ) => ast_ty_to_ty(this, rscope, &**typ),
         ast::TyBareFn(ref bf) => {
             require_c_abi_if_variadic(tcx, &bf.decl, bf.abi, ast_ty.span);

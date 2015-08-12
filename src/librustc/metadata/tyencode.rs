@@ -102,6 +102,7 @@ pub fn enc_ty<'a, 'tcx>(w: &mut Encoder, cx: &ctxt<'a, 'tcx>, t: Ty<'tcx>) {
             for t in ts { enc_ty(w, cx, *t); }
             mywrite!(w, "]");
         }
+        ty::TyEmpty => mywrite!(w, "E[]"),
         ty::TyBox(typ) => { mywrite!(w, "~"); enc_ty(w, cx, typ); }
         ty::TyRawPtr(mt) => { mywrite!(w, "*"); enc_mt(w, cx, mt); }
         ty::TyRef(r, mt) => {

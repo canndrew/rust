@@ -1592,6 +1592,7 @@ impl<'cx, 'tcx> SelectionContext<'cx, 'tcx> {
             ty::TyBool |
             ty::TyFloat(_) |
             ty::TyBareFn(..) |
+            ty::TyEmpty |
             ty::TyChar => {
                 // safe for everything
                 ok_if(Vec::new())
@@ -1799,6 +1800,7 @@ impl<'cx, 'tcx> SelectionContext<'cx, 'tcx> {
             ty::TyBareFn(..) |
             ty::TyStr |
             ty::TyError |
+            ty::TyEmpty |
             ty::TyInfer(ty::IntVar(_)) |
             ty::TyInfer(ty::FloatVar(_)) |
             ty::TyChar => {

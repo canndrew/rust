@@ -613,7 +613,7 @@ pub fn super_fold_ty<'tcx, T: TypeFolder<'tcx>>(this: &mut T,
         }
         ty::TyBool | ty::TyChar | ty::TyStr |
         ty::TyInt(_) | ty::TyUint(_) | ty::TyFloat(_) |
-        ty::TyError | ty::TyInfer(_) |
+        ty::TyError | ty::TyInfer(_) | ty::TyEmpty |
         ty::TyParam(..) => {
             ty.sty.clone()
         }

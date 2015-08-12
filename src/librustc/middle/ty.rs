@@ -1234,7 +1234,7 @@ macro_rules! sty_debug_print {
                 for (_, t) in tcx.interner.borrow().iter() {
                     let variant = match t.sty {
                         ty::TyBool | ty::TyChar | ty::TyInt(..) | ty::TyUint(..) |
-                            ty::TyFloat(..) | ty::TyStr => continue,
+                            ty::TyFloat(..) | ty::TyEmpty | ty::TyStr => continue,
                         ty::TyError => /* unimportant */ continue,
                         $(ty::$variant(..) => &mut $variant,)*
                     };
@@ -1793,6 +1793,9 @@ pub enum TypeVariants<'tcx> {
 
     /// A tuple type.  For example, `(i32, bool)`.
     TyTuple(Vec<Ty<'tcx>>),
+
+    /// The empty type `!`
+    TyEmpty,
 
     /// The projection of an associated type.  For example,
     /// `<T as Trait<..>>::N`.
@@ -3580,6 +3583,7 @@ impl FlagComputation {
             &TyInt(_) |
             &TyFloat(_) |
             &TyUint(_) |
+            &TyEmpty |
             &TyStr => {
             }
 
@@ -3992,6 +3996,10 @@ impl<'tcx> ctxt<'tcx> {
 
     pub fn mk_nil(&self) -> Ty<'tcx> {
         self.mk_tup(Vec::new())
+    }
+
+    pub fn mk_empty(&self) -> Ty<'tcx> {
+        self.mk_ty(TyEmpty)
     }
 
     pub fn mk_bool(&self) -> Ty<'tcx> {
@@ -4512,7 +4520,7 @@ impl<'tcx> TyS<'tcx> {
 
                 // Scalar and unique types are sendable, and durable
                 TyInfer(ty::FreshIntTy(_)) | TyInfer(ty::FreshFloatTy(_)) |
-                TyBool | TyInt(_) | TyUint(_) | TyFloat(_) |
+                TyBool | TyInt(_) | TyUint(_) | TyFloat(_) | TyEmpty |
                 TyBareFn(..) | ty::TyChar => {
                     TC::None
                 }
@@ -4620,7 +4628,7 @@ impl<'tcx> TyS<'tcx> {
         // Fast-path for primitive types
         let result = match self.sty {
             TyBool | TyChar | TyInt(..) | TyUint(..) | TyFloat(..) |
-            TyRawPtr(..) | TyBareFn(..) | TyRef(_, TypeAndMut {
+            TyRawPtr(..) | TyBareFn(..) | TyEmpty | TyRef(_, TypeAndMut {
                 mutbl: ast::MutImmutable, ..
             }) => Some(false),
 
@@ -4662,7 +4670,7 @@ impl<'tcx> TyS<'tcx> {
         // Fast-path for primitive types
         let result = match self.sty {
             TyBool | TyChar | TyInt(..) | TyUint(..) | TyFloat(..) |
-            TyBox(..) | TyRawPtr(..) | TyRef(..) | TyBareFn(..) |
+            TyBox(..) | TyRawPtr(..) | TyRef(..) | TyBareFn(..) | TyEmpty |
             TyArray(..) | TyTuple(..) | TyClosure(..) => Some(true),
 
             TyStr | TyTrait(..) | TySlice(_) => Some(false),
@@ -4717,6 +4725,7 @@ impl<'tcx> TyS<'tcx> {
                 TyBareFn(..) |
                 TyParam(_) |
                 TyProjection(_) |
+                TyEmpty |
                 TySlice(_) => {
                     false
                 }
@@ -5178,6 +5187,7 @@ impl<'tcx> TyS<'tcx> {
             TyBool | TyChar | TyInt(_) |
             TyUint(_) | TyFloat(_) | TyStr => self.to_string(),
             TyTuple(ref tys) if tys.is_empty() => self.to_string(),
+            TyEmpty => "empty".to_string(),
 
             TyEnum(def, _) => format!("enum `{}`", cx.item_path_str(def.did)),
             TyBox(_) => "box".to_string(),
@@ -6506,6 +6516,9 @@ impl<'tcx> ctxt<'tcx> {
                         byte!(23);
                         did(state, data.trait_ref.def_id);
                         hash!(data.item_name.as_str());
+                    }
+                    TyEmpty => {
+                        byte!(24);
                     }
                 }
                 true

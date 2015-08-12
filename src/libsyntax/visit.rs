@@ -411,7 +411,7 @@ pub fn walk_ty<'v, V: Visitor<'v>>(visitor: &mut V, typ: &'v Ty) {
         TyTypeof(ref expression) => {
             visitor.visit_expr(&**expression)
         }
-        TyInfer => {}
+        TyInfer | TyEmpty => {}
         TyMac(ref mac) => {
             visitor.visit_mac(mac)
         }

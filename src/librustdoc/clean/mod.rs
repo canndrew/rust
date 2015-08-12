@@ -1572,6 +1572,7 @@ impl Clean<Type> for ast::Ty {
             TyFixedLengthVec(ref ty, ref e) => FixedVector(box ty.clean(cx),
                                                            e.span.to_src(cx)),
             TyTup(ref tys) => Tuple(tys.clean(cx)),
+            TyEmpty => Bottom,
             TyPath(None, ref p) => {
                 resolve_type(cx, p.clean(cx), self.id)
             }
@@ -1696,6 +1697,7 @@ impl<'tcx> Clean<Type> for ty::Ty<'tcx> {
                 }
             }
             ty::TyTuple(ref t) => Tuple(t.clean(cx)),
+            ty::TyEmpty => Bottom,
 
             ty::TyProjection(ref data) => data.clean(cx),
 

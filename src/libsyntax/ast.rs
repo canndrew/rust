@@ -1455,6 +1455,8 @@ pub enum Ty_ {
     TyBareFn(P<BareFnTy>),
     /// A tuple (`(A, B, C, D,...)`)
     TyTup(Vec<P<Ty>> ),
+    /// The empty type `!`
+    TyEmpty,
     /// A path (`module::module::...::Type`), optionally
     /// "qualified", e.g. `<Vec<T> as SomeTrait>::SomeType`.
     ///

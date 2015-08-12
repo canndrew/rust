@@ -396,6 +396,7 @@ pub fn noop_fold_ty<T: Folder>(t: P<Ty>, fld: &mut T) -> P<Ty> {
         id: fld.new_id(id),
         node: match node {
             TyInfer => node,
+            TyEmpty => node,
             TyVec(ty) => TyVec(fld.fold_ty(ty)),
             TyPtr(mt) => TyPtr(fld.fold_mt(mt)),
             TyRptr(region, mt) => {

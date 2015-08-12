@@ -569,6 +569,10 @@ impl<'a, 'tcx> ImproperCTypesVisitor<'a, 'tcx> {
             ty::TyBool | ty::TyInt(..) | ty::TyUint(..) |
             ty::TyFloat(..) => FfiSafe,
 
+            // Safe as a function argument because such a function could never be called.
+            // Useful as a return type to represent C _Noreturn functions.
+            ty::TyEmpty => FfiSafe,
+
             ty::TyBox(..) => {
                 FfiUnsafe("found Rust type Box<_> in foreign module, \
                            consider using a raw pointer instead")

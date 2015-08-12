@@ -26,6 +26,7 @@ pub enum SimplifiedType {
     VecSimplifiedType,
     PtrSimplifiedType,
     TupleSimplifiedType(usize),
+    EmptySimplifiedType,
     TraitSimplifiedType(ast::DefId),
     StructSimplifiedType(ast::DefId),
     ClosureSimplifiedType(ast::DefId),
@@ -57,6 +58,7 @@ pub fn simplify_type(tcx: &ty::ctxt,
         ty::TyStr => Some(StrSimplifiedType),
         ty::TyArray(..) | ty::TySlice(_) => Some(VecSimplifiedType),
         ty::TyRawPtr(_) => Some(PtrSimplifiedType),
+        ty::TyEmpty => Some(EmptySimplifiedType),
         ty::TyTrait(ref trait_info) => {
             Some(TraitSimplifiedType(trait_info.principal_def_id()))
         }

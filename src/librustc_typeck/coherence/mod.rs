@@ -22,7 +22,7 @@ use middle::traits;
 use middle::ty::RegionEscape;
 use middle::ty::{ImplContainer, ImplOrTraitItemId, ConstTraitItemId};
 use middle::ty::{MethodTraitItemId, TypeTraitItemId, ParameterEnvironment};
-use middle::ty::{Ty, TyBool, TyChar, TyEnum, TyError};
+use middle::ty::{Ty, TyBool, TyChar, TyEnum, TyError, TyEmpty};
 use middle::ty::{TyParam, TypeScheme, TyRawPtr};
 use middle::ty::{TyRef, TyStruct, TyTrait, TyTuple};
 use middle::ty::{TyStr, TyArray, TySlice, TyFloat, TyInfer, TyInt};
@@ -70,7 +70,7 @@ fn get_base_type_def_id<'a, 'tcx>(inference_context: &InferCtxt<'a, 'tcx>,
 
         TyBool | TyChar | TyInt(..) | TyUint(..) | TyFloat(..) |
         TyStr(..) | TyArray(..) | TySlice(..) | TyBareFn(..) | TyTuple(..) |
-        TyParam(..) | TyError |
+        TyParam(..) | TyError | TyEmpty |
         TyRawPtr(_) | TyRef(_, _) | TyProjection(..) => {
             None
         }

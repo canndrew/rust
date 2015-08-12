@@ -91,6 +91,7 @@ impl<'a, 'tcx> Implicator<'a, 'tcx> {
             ty::TyFloat(..) |
             ty::TyBareFn(..) |
             ty::TyError |
+            ty::TyEmpty |
             ty::TyStr => {
                 // No borrowed content reachable here.
             }

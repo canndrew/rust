@@ -307,6 +307,7 @@ fn ty_is_local_constructor<'tcx>(tcx: &ty::ctxt<'tcx>,
         ty::TyRawPtr(..) |
         ty::TyRef(..) |
         ty::TyTuple(..) |
+        ty::TyEmpty |
         ty::TyParam(..) |
         ty::TyProjection(..) => {
             false

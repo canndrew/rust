@@ -685,6 +685,9 @@ impl<'a> State<'a> {
                 }
                 try!(self.pclose());
             }
+            ast::TyEmpty => {
+                try!(word(&mut self.s, "!"));
+            }
             ast::TyParen(ref typ) => {
                 try!(self.popen());
                 try!(self.print_type(&**typ));
