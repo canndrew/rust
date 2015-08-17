@@ -90,7 +90,7 @@ pub fn check_binop<'a, 'tcx>(fcx: &FnCtxt<'a, 'tcx>,
         check_expr_coercable_to_type(fcx, rhs_expr, lhs_ty);
         let rhs_ty = fcx.resolve_type_vars_if_possible(fcx.expr_ty(lhs_expr));
         let return_ty = enforce_builtin_binop_types(fcx, lhs_expr, lhs_ty, rhs_expr, rhs_ty, op);
-        fcx.write_ty(expr.id, return_ty);
+        fcx.write_expr_ty(expr.id, return_ty);
         return;
     }
 
@@ -130,7 +130,7 @@ pub fn check_binop<'a, 'tcx>(fcx: &FnCtxt<'a, 'tcx>,
                 demand::suptype(fcx, expr.span, builtin_return_ty, return_ty);
             }
 
-            fcx.write_ty(expr.id, return_ty);
+            fcx.write_expr_ty(expr.id, return_ty);
         }
     }
 }

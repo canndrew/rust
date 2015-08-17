@@ -96,7 +96,7 @@ use middle::traits::{self, report_fulfillment_errors};
 use middle::ty::{FnSig, GenericPredicates, TypeScheme};
 use middle::ty::{Disr, ParamTy, ParameterEnvironment};
 use middle::ty::{self, HasTypeFlags, RegionEscape, ToPolyTraitRef, Ty};
-use middle::ty::{MethodCall, MethodCallee};
+use middle::ty::{MethodCall, MethodCallee, TypeVariants};
 use middle::ty_fold::{TypeFolder, TypeFoldable};
 use require_c_abi_if_variadic;
 use rscope::{ElisionFailureInfo, RegionScope};
@@ -1282,6 +1282,17 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
                node_id, ty, self.tag());
         self.inh.tables.borrow_mut().node_types.insert(node_id, ty);
     }
+
+    #[inline]
+    fn write_expr_ty(&self,
+                     id:  ast::NodeId,
+                     ty:  Ty<'tcx>) {
+        self.write_ty(id, match ty.sty {
+            TypeVariants::TyEmpty => self.infcx().next_diverging_ty_var(),
+            _                     => ty,
+        })
+    }
+
 
     pub fn write_substs(&self, node_id: ast::NodeId, substs: ty::ItemSubsts<'tcx>) {
         if !substs.substs.is_noop() {
@@ -2541,7 +2552,7 @@ fn err_args<'tcx>(tcx: &ty::ctxt<'tcx>, len: usize) -> Vec<Ty<'tcx>> {
 fn write_call<'a, 'tcx>(fcx: &FnCtxt<'a, 'tcx>,
                         call_expr: &ast::Expr,
                         output: ty::FnOutput<'tcx>) {
-    fcx.write_ty(call_expr.id, match output {
+    fcx.write_expr_ty(call_expr.id, match output {
         ty::FnConverging(output_ty) => output_ty,
         ty::FnDiverging => fcx.infcx().next_diverging_ty_var()
     });
@@ -2841,7 +2852,7 @@ fn check_expr_with_unifier<'a, 'tcx, F>(fcx: &FnCtxt<'a, 'tcx>,
             branches_ty
         };
 
-        fcx.write_ty(id, if_ty);
+        fcx.write_expr_ty(id, if_ty);
     }
 
     // Check field access expressions
@@ -2874,7 +2885,7 @@ fn check_expr_with_unifier<'a, 'tcx, F>(fcx: &FnCtxt<'a, 'tcx>,
             });
         match field_ty {
             Some(field_ty) => {
-                fcx.write_ty(expr.id, field_ty);
+                fcx.write_expr_ty(expr.id, field_ty);
                 fcx.write_autoderef_adjustment(base.id, autoderefs);
                 return;
             }
@@ -2983,7 +2994,7 @@ fn check_expr_with_unifier<'a, 'tcx, F>(fcx: &FnCtxt<'a, 'tcx>,
             });
         match field_ty {
             Some(field_ty) => {
-                fcx.write_ty(expr.id, field_ty);
+                fcx.write_expr_ty(expr.id, field_ty);
                 fcx.write_autoderef_adjustment(base.id, autoderefs);
                 return;
             }
@@ -3280,7 +3291,7 @@ fn check_expr_with_unifier<'a, 'tcx, F>(fcx: &FnCtxt<'a, 'tcx>,
                 }
             }
         }
-        fcx.write_ty(id, oprnd_t);
+        fcx.write_expr_ty(id, oprnd_t);
       }
       ast::ExprAddrOf(mutbl, ref oprnd) => {
         let hint = expected.only_has_type(fcx).map_or(NoExpectation, |ty| {
@@ -3324,7 +3335,7 @@ fn check_expr_with_unifier<'a, 'tcx, F>(fcx: &FnCtxt<'a, 'tcx>,
             let region = fcx.infcx().next_region_var(infer::AddrOfRegion(expr.span));
             tcx.mk_ref(tcx.mk_region(region), tm)
         };
-        fcx.write_ty(id, oprnd_t);
+        fcx.write_expr_ty(id, oprnd_t);
       }
       ast::ExprPath(ref maybe_qself, ref path) => {
           let opt_self_ty = maybe_qself.as_ref().map(|qself| {
@@ -3408,7 +3419,7 @@ fn check_expr_with_unifier<'a, 'tcx, F>(fcx: &FnCtxt<'a, 'tcx>,
                                                     &**a,
                                                     expected,
                                                     lvalue_pref);
-        fcx.write_ty(id, fcx.expr_ty(&**a));
+        fcx.write_expr_ty(id, fcx.expr_ty(&**a));
       }
       ast::ExprAssign(ref lhs, ref rhs) => {
         check_expr_with_lvalue_pref(fcx, &**lhs, PreferMutLvalue);
@@ -3472,7 +3483,7 @@ fn check_expr_with_unifier<'a, 'tcx, F>(fcx: &FnCtxt<'a, 'tcx>,
       }
       ast::ExprBlock(ref b) => {
         check_block_with_expected(fcx, &**b, expected);
-        fcx.write_ty(id, fcx.node_ty(b.id));
+        fcx.write_expr_ty(id, fcx.node_ty(b.id));
       }
       ast::ExprCall(ref callee, ref args) => {
           callee::check_call(fcx, expr, &**callee, &args[..], expected);
@@ -3507,7 +3518,7 @@ fn check_expr_with_unifier<'a, 'tcx, F>(fcx: &FnCtxt<'a, 'tcx>,
         } else {
             // Write a type for the whole expression, assuming everything is going
             // to work out Ok.
-            fcx.write_ty(id, t_cast);
+            fcx.write_expr_ty(id, t_cast);
 
             // Defer other checks until we're done type checking.
             let mut deferred_cast_checks = fcx.inh.deferred_cast_checks.borrow_mut();
@@ -3718,7 +3729,7 @@ fn check_expr_with_unifier<'a, 'tcx, F>(fcx: &FnCtxt<'a, 'tcx>,
                   Some((index_ty, element_ty)) => {
                       let idx_expr_ty = fcx.expr_ty(idx);
                       demand::eqtype(fcx, expr.span, index_ty, idx_expr_ty);
-                      fcx.write_ty(id, element_ty);
+                      fcx.write_expr_ty(id, element_ty);
                   }
                   None => {
                       check_expr_has_type(fcx, &**idx, fcx.tcx().types.err);
@@ -4158,7 +4169,7 @@ fn check_block_with_expected<'a, 'tcx>(fcx: &FnCtxt<'a, 'tcx>,
             } else if any_diverges {
                 fcx.write_ty(blk.id, fcx.infcx().next_diverging_ty_var());
             } else {
-                fcx.write_ty(blk.id, ety);
+                fcx.write_expr_ty(blk.id, ety);
             }
         }
     };

@@ -513,7 +513,7 @@ pub fn check_match<'a, 'tcx>(fcx: &FnCtxt<'a, 'tcx>,
         }
     });
 
-    fcx.write_ty(expr.id, result_ty);
+    fcx.write_expr_ty(expr.id, result_ty);
 }
 
 pub struct pat_ctxt<'a, 'tcx: 'a> {

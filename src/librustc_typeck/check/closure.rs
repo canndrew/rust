@@ -74,7 +74,7 @@ fn check_closure<'a,'tcx>(fcx: &FnCtxt<'a,'tcx>,
             fcx.ccx.tcx.mk_substs(fcx.inh.infcx.parameter_environment.free_substs.clone()),
             upvar_tys);
 
-    fcx.write_ty(expr.id, closure_type);
+    fcx.write_expr_ty(expr.id, closure_type);
 
     let fn_sig = fcx.tcx().liberate_late_bound_regions(
         region::DestructionScopeData::new(body.id), &fn_ty.sig);

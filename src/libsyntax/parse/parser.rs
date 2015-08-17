@@ -54,7 +54,7 @@ use ast::{TupleVariantKind, Ty, Ty_, TypeBinding};
 use ast::{TyMac};
 use ast::{TyFixedLengthVec, TyBareFn, TyTypeof, TyInfer};
 use ast::{TyParam, TyParamBound, TyParen, TyPath, TyPolyTraitRef, TyPtr};
-use ast::{TyRptr, TyTup, TyU32, TyVec, UnUniq};
+use ast::{TyRptr, TyTup, TyEmpty, TyU32, TyVec, UnUniq};
 use ast::{TypeImplItem, TypeTraitItem};
 use ast::{UnnamedField, UnsafeBlock};
 use ast::{ViewPath, ViewPathGlob, ViewPathList, ViewPathSimple};
@@ -1304,7 +1304,10 @@ impl<'a> Parser<'a> {
 
         let lo = self.span.lo;
 
-        let t = if self.check(&token::OpenDelim(token::Paren)) {
+        let t = if self.check(&token::Not) {
+            try!(self.bump());
+            TyEmpty
+        } else if self.check(&token::OpenDelim(token::Paren)) {
             try!(self.bump());
 
             // (t) is a parenthesized ty
