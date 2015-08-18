@@ -217,7 +217,7 @@ pub fn check_pat<'a, 'tcx>(pcx: &pat_ctxt<'a, 'tcx>,
                     let predicates = tcx.lookup_predicates(def.def_id());
                     instantiate_path(fcx, segments,
                                      scheme, &predicates,
-                                     opt_ty, def, pat.span, pat.id);
+                                     opt_ty, def, pat.span, false, pat.id);
                     let const_ty = fcx.node_ty(pat.id);
                     demand::suptype(fcx, pat.span, expected, const_ty);
                 } else {
@@ -570,6 +570,7 @@ pub fn check_pat_struct<'a, 'tcx>(pcx: &pat_ctxt<'a, 'tcx>, pat: &'tcx ast::Pat,
                      None,
                      def,
                      pat.span,
+                     false,
                      pat.id);
 
     let pat_ty = fcx.node_ty(pat.id);
@@ -628,7 +629,7 @@ pub fn check_pat_enum<'a, 'tcx>(pcx: &pat_ctxt<'a, 'tcx>,
     };
     instantiate_path(pcx.fcx, segments,
                      path_scheme, &ctor_predicates,
-                     opt_ty, def, pat.span, pat.id);
+                     opt_ty, def, pat.span, false, pat.id);
 
     // If we didn't have a fully resolved path to start with, we had an
     // associated const, and we should quit now, since the rest of this

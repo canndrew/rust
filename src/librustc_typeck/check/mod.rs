@@ -3369,6 +3369,7 @@ fn check_expr_with_unifier<'a, 'tcx, F>(fcx: &FnCtxt<'a, 'tcx>,
                                opt_ty,
                                def,
                                expr.span,
+                               true,
                                id);
           }
 
@@ -4435,6 +4436,7 @@ pub fn instantiate_path<'a, 'tcx>(fcx: &FnCtxt<'a, 'tcx>,
                                   opt_self_ty: Option<Ty<'tcx>>,
                                   def: def::Def,
                                   span: Span,
+                                  node_is_an_expr: bool,
                                   node_id: ast::NodeId) {
     debug!("instantiate_path(path={:?}, def={:?}, node_id={}, type_scheme={:?})",
            segments,
@@ -4691,7 +4693,12 @@ pub fn instantiate_path<'a, 'tcx>(fcx: &FnCtxt<'a, 'tcx>,
         }
     }
 
-    fcx.write_ty(node_id, ty_substituted);
+    if node_is_an_expr {
+        fcx.write_expr_ty(node_id, ty_substituted);
+    }
+    else {
+        fcx.write_ty(node_id, ty_substituted);
+    }
     fcx.write_substs(node_id, ty::ItemSubsts { substs: substs });
     return;
 
