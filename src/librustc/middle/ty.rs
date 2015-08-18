@@ -1418,7 +1418,10 @@ pub enum FnOutput<'tcx> {
 
 impl<'tcx> FnOutput<'tcx> {
     pub fn diverges(&self) -> bool {
-        *self == FnDiverging
+        match *self {
+            FnConverging(ty) => ty.is_empty(),
+            FnDiverging      => false,
+        }
     }
 
     pub fn unwrap(self) -> Ty<'tcx> {
@@ -4217,7 +4220,9 @@ impl<'tcx> TyS<'tcx> {
         // FIXME(#24885): be smarter here
         match self.sty {
             TyEnum(def, _) | TyStruct(def, _) => def.is_empty(),
-            _ => false
+            TyTup(ref v)    => v.any(|t| t.is_empty()),
+            TyEmpty         => true,
+            _               => false
         }
     }
 
