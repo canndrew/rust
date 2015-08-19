@@ -1413,28 +1413,21 @@ pub struct ClosureTy<'tcx> {
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Debug)]
 pub enum FnOutput<'tcx> {
     FnConverging(Ty<'tcx>),
-    FnDiverging
 }
 
 impl<'tcx> FnOutput<'tcx> {
     pub fn diverges(&self) -> bool {
         match *self {
-            FnConverging(ty) => ty.is_empty(),
-            FnDiverging      => false,
+            FnConverging(ty) => match ty.sty {
+                TyEmpty => true,    // FIXME: could we use is_empty here?
+                _       => false,
+            }
         }
     }
 
     pub fn unwrap(self) -> Ty<'tcx> {
         match self {
             ty::FnConverging(t) => t,
-            ty::FnDiverging => unreachable!()
-        }
-    }
-
-    pub fn unwrap_or(self, def: Ty<'tcx>) -> Ty<'tcx> {
-        match self {
-            ty::FnConverging(t) => t,
-            ty::FnDiverging => def
         }
     }
 }
@@ -3683,9 +3676,8 @@ impl FlagComputation {
 
         computation.add_tys(&fn_sig.0.inputs);
 
-        if let ty::FnConverging(output) = fn_sig.0.output {
-            computation.add_ty(output);
-        }
+        let ty::FnConverging(output) = fn_sig.0.output;
+        computation.add_ty(output);
 
         self.add_bound_computation(&computation);
     }
@@ -4220,7 +4212,7 @@ impl<'tcx> TyS<'tcx> {
         // FIXME(#24885): be smarter here
         match self.sty {
             TyEnum(def, _) | TyStruct(def, _) => def.is_empty(),
-            TyTup(ref v)    => v.any(|t| t.is_empty()),
+            TyTuple(ref v)  => v.iter().any(|t| t.is_empty(_cx)),
             TyEmpty         => true,
             _               => false
         }
@@ -6431,9 +6423,8 @@ impl<'tcx> ctxt<'tcx> {
             let fn_sig = |state: &mut SipHasher, sig: &Binder<FnSig<'tcx>>| {
                 let sig = tcx.anonymize_late_bound_regions(sig).0;
                 for a in &sig.inputs { helper(tcx, *a, svh, state); }
-                if let ty::FnConverging(output) = sig.output {
-                    helper(tcx, output, svh, state);
-                }
+                let ty::FnConverging(output) = sig.output;
+                helper(tcx, output, svh, state);
             };
             ty.maybe_walk(|ty| {
                 match ty.sty {
@@ -7072,7 +7063,6 @@ impl<'tcx> RegionEscape for FnOutput<'tcx> {
     fn has_regions_escaping_depth(&self, depth: u32) -> bool {
         match *self {
             FnConverging(t) => t.has_regions_escaping_depth(depth),
-            FnDiverging => false
         }
     }
 }
@@ -7302,7 +7292,6 @@ impl<'tcx> HasTypeFlags for FnOutput<'tcx> {
     fn has_type_flags(&self, flags: TypeFlags) -> bool {
         match *self {
             FnConverging(t) => t.has_type_flags(flags),
-            FnDiverging => false,
         }
     }
 }

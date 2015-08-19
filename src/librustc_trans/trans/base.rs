@@ -775,7 +775,7 @@ pub fn load_if_immediate<'blk, 'tcx>(cx: Block<'blk, 'tcx>,
 /// gives us better information about what we are loading.
 pub fn load_ty<'blk, 'tcx>(cx: Block<'blk, 'tcx>,
                            ptr: ValueRef, t: Ty<'tcx>) -> ValueRef {
-    if cx.unreachable.get() || type_is_zero_size(cx.ccx(), t) {
+    if cx.unreachable.get() || type_is_zero_size(cx.ccx(), t) || t.is_empty(cx.tcx()) {
         return C_undef(type_of::type_of(cx.ccx(), t));
     }
 
@@ -1209,7 +1209,6 @@ pub fn new_fn_ctxt<'a, 'tcx>(ccx: &'a CrateContext<'a, 'tcx>,
                 monomorphize::apply_param_substs(ccx.tcx(), param_substs, &output_type);
             type_of::return_uses_outptr(ccx, substd_output_type)
         }
-        ty::FnDiverging => false
     };
     let debug_context = debuginfo::create_function_debug_context(ccx, id, param_substs, llfndecl);
     let (blk_id, cfg) = build_cfg(ccx.tcx(), id);
@@ -1264,19 +1263,18 @@ pub fn init_function<'a, 'tcx>(fcx: &'a FunctionContext<'a, 'tcx>,
         llvm::LLVMGetFirstInstruction(entry_bcx.llbb)
     }));
 
-    if let ty::FnConverging(output_type) = output {
-        // This shouldn't need to recompute the return type,
-        // as new_fn_ctxt did it already.
-        let substd_output_type = fcx.monomorphize(&output_type);
-        if !return_type_is_void(fcx.ccx, substd_output_type) {
-            // If the function returns nil/bot, there is no real return
-            // value, so do not set `llretslotptr`.
-            if !skip_retptr || fcx.caller_expects_out_pointer {
-                // Otherwise, we normally allocate the llretslotptr, unless we
-                // have been instructed to skip it for immediate return
-                // values.
-                fcx.llretslotptr.set(Some(make_return_slot_pointer(fcx, substd_output_type)));
-            }
+    let ty::FnConverging(output_type) = output;
+    // This shouldn't need to recompute the return type,
+    // as new_fn_ctxt did it already.
+    let substd_output_type = fcx.monomorphize(&output_type);
+    if !return_type_is_void(fcx.ccx, substd_output_type) {
+        // If the function returns nil/bot, there is no real return
+        // value, so do not set `llretslotptr`.
+        if !skip_retptr || fcx.caller_expects_out_pointer {
+            // Otherwise, we normally allocate the llretslotptr, unless we
+            // have been instructed to skip it for immediate return
+            // values.
+            fcx.llretslotptr.set(Some(make_return_slot_pointer(fcx, substd_output_type)));
         }
     }
 
@@ -1521,9 +1519,8 @@ pub fn build_return_block<'blk, 'tcx>(fcx: &FunctionContext<'blk, 'tcx>,
             };
 
             if fcx.caller_expects_out_pointer {
-                if let ty::FnConverging(retty) = retty {
-                    store_ty(ret_cx, retval, get_param(fcx.llfn, 0), retty);
-                }
+                let ty::FnConverging(retty) = retty;
+                store_ty(ret_cx, retval, get_param(fcx.llfn, 0), retty);
                 RetVoid(ret_cx, ret_debug_location)
             } else {
                 Ret(ret_cx, retval, ret_debug_location)
@@ -1537,13 +1534,6 @@ pub fn build_return_block<'blk, 'tcx>(fcx: &FunctionContext<'blk, 'tcx>,
                     RetVoid(ret_cx, ret_debug_location)
                 } else {
                     Ret(ret_cx, load_ty(ret_cx, retslot, retty), ret_debug_location)
-                }
-            }
-            ty::FnDiverging => {
-                if fcx.caller_expects_out_pointer {
-                    RetVoid(ret_cx, ret_debug_location)
-                } else {
-                    Ret(ret_cx, C_undef(Type::nil(fcx.ccx)), ret_debug_location)
                 }
             }
         }

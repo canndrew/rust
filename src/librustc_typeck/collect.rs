@@ -2252,8 +2252,6 @@ fn compute_type_scheme_of_foreign_fn_decl<'a, 'tcx>(
             ty::FnConverging(ast_ty_to_ty(&ccx.icx(ast_generics), &rb, &**ty)),
         ast::DefaultReturn(..) =>
             ty::FnConverging(ccx.tcx.mk_nil()),
-        ast::NoReturn(..) =>
-            ty::FnDiverging
     };
 
     let t_fn = ccx.tcx.mk_fn(None,

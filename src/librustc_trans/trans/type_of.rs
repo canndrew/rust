@@ -124,7 +124,6 @@ pub fn type_of_rust_fn<'a, 'tcx>(cx: &CrateContext<'a, 'tcx>,
                 lloutputtype
             }
         }
-        ty::FnDiverging => Type::void(cx)
     };
 
     // Arg 1: Environment
@@ -405,7 +404,7 @@ pub fn in_memory_type_of<'a, 'tcx>(cx: &CrateContext<'a, 'tcx>, t: Ty<'tcx>) -> 
           let repr = adt::represent_type(cx, t);
           adt::type_of(cx, &*repr)
       }
-      ty::TyEmpty => Type::nil(cx),
+      ty::TyEmpty => Type::nil(cx), // FIXME: should this be Type::void(cx)? what's the difference?
       ty::TyStruct(def, ref substs) => {
           if t.is_simd() {
               let llet = in_memory_type_of(cx, t.simd_type(cx.tcx()));

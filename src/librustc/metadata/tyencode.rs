@@ -362,9 +362,6 @@ fn enc_fn_sig<'a, 'tcx>(w: &mut Encoder, cx: &ctxt<'a, 'tcx>,
         ty::FnConverging(result_type) => {
             enc_ty(w, cx, result_type);
         }
-        ty::FnDiverging => {
-            mywrite!(w, "z");
-        }
     }
 }
 

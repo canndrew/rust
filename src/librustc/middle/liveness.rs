@@ -1544,12 +1544,6 @@ impl<'a, 'tcx> Liveness<'a, 'tcx> {
                     }
                 }
             }
-            ty::FnDiverging
-                if self.live_on_entry(entry_ln, self.s.clean_exit_var).is_some() => {
-                    span_err!(self.ir.tcx.sess, sp, E0270,
-                        "computation may converge in a function marked as diverging");
-                }
-
             _ => {}
         }
     }

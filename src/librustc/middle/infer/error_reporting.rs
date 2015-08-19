@@ -1265,7 +1265,6 @@ impl<'a, 'tcx> Rebuilder<'a, 'tcx> {
                 self.rebuild_arg_ty_or_output(&**ret_ty, lifetime, anon_nums, region_names)
             ),
             ast::DefaultReturn(span) => ast::DefaultReturn(span),
-            ast::NoReturn(span) => ast::NoReturn(span)
         }
     }
 

@@ -585,10 +585,9 @@ fn check_fn<'a, 'tcx>(ccx: &'a CrateCtxt<'a, 'tcx>,
         .cloned()
         .collect();
 
-    if let ty::FnConverging(ret_ty) = ret_ty {
-        fcx.require_type_is_sized(ret_ty, decl.output.span(), traits::ReturnType);
-        fn_sig_tys.push(ret_ty);
-    }
+    let ty::FnConverging(ret_ty) = ret_ty;
+    fcx.require_type_is_sized(ret_ty, decl.output.span(), traits::ReturnType);
+    fn_sig_tys.push(ret_ty);
 
     debug!("fn-sig-map: fn_id={} fn_sig_tys={:?}",
            fn_id,
@@ -622,10 +621,7 @@ fn check_fn<'a, 'tcx>(ccx: &'a CrateCtxt<'a, 'tcx>,
         visit.visit_block(body);
     }
 
-    check_block_with_expected(&fcx, body, match ret_ty {
-        ty::FnConverging(result_type) => ExpectHasType(result_type),
-        ty::FnDiverging => NoExpectation
-    });
+    check_block_with_expected(&fcx, body, ExpectHasType(ret_ty));
 
     for (input, arg) in decl.inputs.iter().zip(arg_tys) {
         fcx.write_ty(input.id, arg);
@@ -2554,7 +2550,6 @@ fn write_call<'a, 'tcx>(fcx: &FnCtxt<'a, 'tcx>,
                         output: ty::FnOutput<'tcx>) {
     fcx.write_expr_ty(call_expr.id, match output {
         ty::FnConverging(output_ty) => output_ty,
-        ty::FnDiverging => fcx.infcx().next_diverging_ty_var()
     });
 }
 
@@ -2711,29 +2706,27 @@ fn expected_types_for_fn_args<'a, 'tcx>(fcx: &FnCtxt<'a, 'tcx>,
                                         formal_args: &[Ty<'tcx>])
                                         -> Vec<Ty<'tcx>> {
     let expected_args = expected_ret.only_has_type(fcx).and_then(|ret_ty| {
-        if let ty::FnConverging(formal_ret_ty) = formal_ret {
-            fcx.infcx().commit_regions_if_ok(|| {
-                // Attempt to apply a subtyping relationship between the formal
-                // return type (likely containing type variables if the function
-                // is polymorphic) and the expected return type.
-                // No argument expectations are produced if unification fails.
-                let origin = infer::Misc(call_span);
-                let ures = fcx.infcx().sub_types(false, origin, formal_ret_ty, ret_ty);
-                // FIXME(#15760) can't use try! here, FromError doesn't default
-                // to identity so the resulting type is not constrained.
-                if let Err(e) = ures {
-                    return Err(e);
-                }
+        // FIXME: is special handling for ! needed here?
+        let ty::FnConverging(formal_ret_ty) = formal_ret;
+        fcx.infcx().commit_regions_if_ok(|| {
+            // Attempt to apply a subtyping relationship between the formal
+            // return type (likely containing type variables if the function
+            // is polymorphic) and the expected return type.
+            // No argument expectations are produced if unification fails.
+            let origin = infer::Misc(call_span);
+            let ures = fcx.infcx().sub_types(false, origin, formal_ret_ty, ret_ty);
+            // FIXME(#15760) can't use try! here, FromError doesn't default
+            // to identity so the resulting type is not constrained.
+            if let Err(e) = ures {
+                return Err(e);
+            }
 
-                // Record all the argument types, with the substitutions
-                // produced from the above subtyping unification.
-                Ok(formal_args.iter().map(|ty| {
-                    fcx.infcx().resolve_type_vars_if_possible(ty)
-                }).collect())
-            }).ok()
-        } else {
-            None
-        }
+            // Record all the argument types, with the substitutions
+            // produced from the above subtyping unification.
+            Ok(formal_args.iter().map(|ty| {
+                fcx.infcx().resolve_type_vars_if_possible(ty)
+            }).collect())
+        }).ok()
     }).unwrap_or(vec![]);
     debug!("expected_types_for_fn_args(formal={:?} -> {:?}, expected={:?} -> {:?})",
            formal_args, formal_ret,
@@ -3404,13 +3397,6 @@ fn check_expr_with_unifier<'a, 'tcx, F>(fcx: &FnCtxt<'a, 'tcx>,
                         check_expr_coercable_to_type(fcx, &**e, result_type);
                     }
                 }
-            }
-            ty::FnDiverging => {
-                if let Some(ref e) = *expr_opt {
-                    check_expr(fcx, &**e);
-                }
-                span_err!(tcx.sess, expr.span, E0166,
-                    "`return` in a function declared as diverging");
             }
         }
         fcx.write_ty(id, fcx.infcx().next_diverging_ty_var());
@@ -5072,7 +5058,7 @@ pub fn check_intrinsic_type(ccx: &CrateCtxt, it: &ast::ForeignItem) {
         };
         (n_tps, inputs, ty::FnConverging(output))
     } else if &name[..] == "abort" || &name[..] == "unreachable" {
-        (0, Vec::new(), ty::FnDiverging)
+        (0, Vec::new(), ty::FnConverging(tcx.mk_empty()))
     } else {
         let (n_tps, inputs, output) = match &name[..] {
             "breakpoint" => (0, Vec::new(), tcx.mk_nil()),

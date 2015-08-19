@@ -39,7 +39,7 @@ use ast::{LitStr, LitInt, Local};
 use ast::{MacStmtWithBraces, MacStmtWithSemicolon, MacStmtWithoutBraces};
 use ast::{MutImmutable, MutMutable, Mac_, MacInvocTT, MatchSource};
 use ast::{MutTy, BiMul, Mutability};
-use ast::{MethodImplItem, NamedField, UnNeg, NoReturn, UnNot};
+use ast::{MethodImplItem, NamedField, UnNeg, UnNot};
 use ast::{Pat, PatBox, PatEnum, PatIdent, PatLit, PatQPath, PatMac, PatRange};
 use ast::{PatRegion, PatStruct, PatTup, PatVec, PatWild, PatWildMulti};
 use ast::PatWildSingle;
@@ -1262,11 +1262,7 @@ impl<'a> Parser<'a> {
     /// Parse optional return type [ -> TY ] in function decl
     pub fn parse_ret_ty(&mut self) -> PResult<FunctionRetTy> {
         if try!(self.eat(&token::RArrow) ){
-            if try!(self.eat(&token::Not) ){
-                Ok(NoReturn(self.span))
-            } else {
-                Ok(Return(try!(self.parse_ty_nopanic())))
-            }
+            Ok(Return(try!(self.parse_ty_nopanic())))
         } else {
             let pos = self.span.lo;
             Ok(DefaultReturn(mk_sp(pos, pos)))

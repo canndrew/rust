@@ -651,7 +651,6 @@ pub fn super_fold_output<'tcx, T: TypeFolder<'tcx>>(this: &mut T,
                                                     -> ty::FnOutput<'tcx> {
     match *output {
         ty::FnConverging(ref ty) => ty::FnConverging(ty.fold_with(this)),
-        ty::FnDiverging => ty::FnDiverging
     }
 }
 

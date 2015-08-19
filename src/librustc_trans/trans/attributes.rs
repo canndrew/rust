@@ -175,50 +175,49 @@ pub fn from_fn_type<'a, 'tcx>(ccx: &CrateContext<'a, 'tcx>, fn_type: ty::Ty<'tcx
 
     // Index 0 is the return value of the llvm func, so we start at 1
     let mut idx = 1;
-    if let ty::FnConverging(ret_ty) = ret_ty {
-        // A function pointer is called without the declaration
-        // available, so we have to apply any attributes with ABI
-        // implications directly to the call instruction. Right now,
-        // the only attribute we need to worry about is `sret`.
-        if type_of::return_uses_outptr(ccx, ret_ty) {
-            let llret_sz = machine::llsize_of_real(ccx, type_of::type_of(ccx, ret_ty));
+    let ty::FnConverging(ret_ty) = ret_ty;
+    // A function pointer is called without the declaration
+    // available, so we have to apply any attributes with ABI
+    // implications directly to the call instruction. Right now,
+    // the only attribute we need to worry about is `sret`.
+    if type_of::return_uses_outptr(ccx, ret_ty) {
+        let llret_sz = machine::llsize_of_real(ccx, type_of::type_of(ccx, ret_ty));
 
-            // The outptr can be noalias and nocapture because it's entirely
-            // invisible to the program. We also know it's nonnull as well
-            // as how many bytes we can dereference
-            attrs.arg(1, llvm::Attribute::StructRet)
-                 .arg(1, llvm::Attribute::NoAlias)
-                 .arg(1, llvm::Attribute::NoCapture)
-                 .arg(1, llvm::DereferenceableAttribute(llret_sz));
+        // The outptr can be noalias and nocapture because it's entirely
+        // invisible to the program. We also know it's nonnull as well
+        // as how many bytes we can dereference
+        attrs.arg(1, llvm::Attribute::StructRet)
+             .arg(1, llvm::Attribute::NoAlias)
+             .arg(1, llvm::Attribute::NoCapture)
+             .arg(1, llvm::DereferenceableAttribute(llret_sz));
 
-            // Add one more since there's an outptr
-            idx += 1;
-        } else {
-            // The `noalias` attribute on the return value is useful to a
-            // function ptr caller.
-            match ret_ty.sty {
-                // `Box` pointer return values never alias because ownership
-                // is transferred
-                ty::TyBox(it) if common::type_is_sized(ccx.tcx(), it) => {
-                    attrs.ret(llvm::Attribute::NoAlias);
-                }
-                _ => {}
+        // Add one more since there's an outptr
+        idx += 1;
+    } else {
+        // The `noalias` attribute on the return value is useful to a
+        // function ptr caller.
+        match ret_ty.sty {
+            // `Box` pointer return values never alias because ownership
+            // is transferred
+            ty::TyBox(it) if common::type_is_sized(ccx.tcx(), it) => {
+                attrs.ret(llvm::Attribute::NoAlias);
             }
+            _ => {}
+        }
 
-            // We can also mark the return value as `dereferenceable` in certain cases
-            match ret_ty.sty {
-                // These are not really pointers but pairs, (pointer, len)
-                ty::TyRef(_, ty::TypeAndMut { ty: inner, .. })
-                | ty::TyBox(inner) if common::type_is_sized(ccx.tcx(), inner) => {
-                    let llret_sz = machine::llsize_of_real(ccx, type_of::type_of(ccx, inner));
-                    attrs.ret(llvm::DereferenceableAttribute(llret_sz));
-                }
-                _ => {}
+        // We can also mark the return value as `dereferenceable` in certain cases
+        match ret_ty.sty {
+            // These are not really pointers but pairs, (pointer, len)
+            ty::TyRef(_, ty::TypeAndMut { ty: inner, .. })
+            | ty::TyBox(inner) if common::type_is_sized(ccx.tcx(), inner) => {
+                let llret_sz = machine::llsize_of_real(ccx, type_of::type_of(ccx, inner));
+                attrs.ret(llvm::DereferenceableAttribute(llret_sz));
             }
+            _ => {}
+        }
 
-            if let ty::TyBool = ret_ty.sty {
-                attrs.ret(llvm::Attribute::ZExt);
-            }
+        if let ty::TyBool = ret_ty.sty {
+            attrs.ret(llvm::Attribute::ZExt);
         }
     }
 

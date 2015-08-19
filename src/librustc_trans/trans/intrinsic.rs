@@ -369,7 +369,6 @@ pub fn trans_intrinsic_call<'a, 'blk, 'tcx>(mut bcx: Block<'blk, 'tcx>,
 
     let ret_ty = match ret_ty {
         ty::FnConverging(ret_ty) => ret_ty,
-        ty::FnDiverging => unreachable!()
     };
 
     let llret_ty = type_of::type_of(ccx, ret_ty);

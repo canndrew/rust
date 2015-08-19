@@ -999,9 +999,8 @@ impl<'a, 'tcx> ConstraintContext<'a, 'tcx> {
         for &input in &sig.0.inputs {
             self.add_constraints_from_ty(generics, input, contra);
         }
-        if let ty::FnConverging(result_type) = sig.0.output {
-            self.add_constraints_from_ty(generics, result_type, variance);
-        }
+        let ty::FnConverging(result_type) = sig.0.output;
+        self.add_constraints_from_ty(generics, result_type, variance);
     }
 
     /// Adds constraints appropriate for a region appearing in a

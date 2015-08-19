@@ -712,7 +712,6 @@ pub fn trans_call_inner<'a, 'blk, 'tcx, F>(bcx: Block<'blk, 'tcx>,
         expr::Ignore => {
             let ret_ty = match ret_ty {
                 ty::FnConverging(ret_ty) => ret_ty,
-                ty::FnDiverging => ccx.tcx().mk_nil()
             };
             if !is_rust_fn ||
               type_of::return_uses_outptr(ccx, ret_ty) ||
@@ -839,8 +838,10 @@ pub fn trans_call_inner<'a, 'blk, 'tcx, F>(bcx: Block<'blk, 'tcx>,
         _ => {}
     }
 
-    if ret_ty == ty::FnDiverging {
-        Unreachable(bcx);
+    match ret_ty {
+        ty::FnConverging(ty) => if ty.is_empty(bcx.tcx()) {
+            Unreachable(bcx);
+        }
     }
 
     Result::new(bcx, llresult)

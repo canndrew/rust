@@ -1805,7 +1805,6 @@ fn ty_of_method_or_bare_fn<'a, 'tcx>(this: &AstConv<'tcx>,
                                                               implied_output_region,
                                                               &output)),
         ast::DefaultReturn(..) => ty::FnConverging(this.tcx().mk_nil()),
-        ast::NoReturn(..) => ty::FnDiverging
     };
 
     (ty::BareFnTy {
@@ -1943,7 +1942,6 @@ pub fn ty_of_closure<'tcx>(
         ast::Return(ref output) =>
             ty::FnConverging(ast_ty_to_ty(this, &rb, &**output)),
         ast::DefaultReturn(..) => unreachable!(),
-        ast::NoReturn(..) => ty::FnDiverging
     };
 
     debug!("ty_of_closure: input_tys={:?}", input_tys);

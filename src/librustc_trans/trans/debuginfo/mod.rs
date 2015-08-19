@@ -18,7 +18,7 @@ use self::utils::{DIB, span_start, assert_type_for_node_id, contains_nodebug_att
                   create_DIArray, is_node_local_to_unit};
 use self::namespace::{namespace_for_item, NamespaceTreeNode};
 use self::type_names::compute_debuginfo_type_name;
-use self::metadata::{type_metadata, diverging_type_metadata};
+use self::metadata::type_metadata;
 use self::metadata::{file_metadata, scope_metadata, TypeMap, compile_unit_metadata};
 use self::source_loc::InternalDebugLocation;
 
@@ -433,7 +433,6 @@ pub fn create_function_debug_context<'a, 'tcx>(cx: &CrateContext<'a, 'tcx>,
                 ty::TyTuple(ref tys) if tys.is_empty() => ptr::null_mut(),
                 _ => type_metadata(cx, ret_ty, codemap::DUMMY_SP)
             },
-            ty::FnDiverging => diverging_type_metadata(cx)
         });
 
         let inputs = &if abi == abi::RustCall {

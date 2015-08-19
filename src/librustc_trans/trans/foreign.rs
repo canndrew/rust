@@ -411,7 +411,6 @@ pub fn trans_native_call<'blk, 'tcx>(bcx: Block<'blk, 'tcx>,
                 ty::FnConverging(result_ty) => {
                     base::store_ty(bcx, llforeign_retval, llretptr, result_ty)
                 }
-                ty::FnDiverging => {}
             }
         } else {
             // The actual return type is a struct, but the ABI
@@ -694,7 +693,6 @@ pub fn trans_rust_fn_with_foreign_abi<'a, 'tcx>(ccx: &CrateContext<'a, 'tcx>,
         // Push Rust return pointer, using null if it will be unused.
         let rust_uses_outptr = match tys.fn_sig.output {
             ty::FnConverging(ret_ty) => type_of::return_uses_outptr(ccx, ret_ty),
-            ty::FnDiverging => false
         };
         let return_alloca: Option<ValueRef>;
         let llrust_ret_ty = if rust_uses_outptr {
@@ -918,8 +916,6 @@ fn foreign_signature<'a, 'tcx>(ccx: &CrateContext<'a, 'tcx>,
     let (llret_ty, ret_def) = match fn_sig.output {
         ty::FnConverging(ret_ty) =>
             (type_of::foreign_arg_type_of(ccx, ret_ty), !return_type_is_void(ccx, ret_ty)),
-        ty::FnDiverging =>
-            (Type::nil(ccx), false)
     };
     LlvmSignature {
         llarg_tys: llarg_tys,

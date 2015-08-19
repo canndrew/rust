@@ -70,8 +70,11 @@ pub fn declare_fn(ccx: &CrateContext, name: &str, callconv: llvm::CallConv,
     // be merged.
     llvm::SetUnnamedAddr(llfn, true);
 
-    if output == ty::FnDiverging {
-        llvm::SetFunctionAttribute(llfn, llvm::Attribute::NoReturn);
+    match output {
+        ty::FnConverging(ty) => match ty.sty {  // FIXME: use is_empty()
+            ty::TyEmpty => llvm::SetFunctionAttribute(llfn, llvm::Attribute::NoReturn),
+            _           => (),
+        }
     }
 
     if ccx.tcx().sess.opts.cg.no_redzone

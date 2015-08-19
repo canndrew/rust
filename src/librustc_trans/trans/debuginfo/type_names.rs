@@ -149,9 +149,6 @@ pub fn push_debuginfo_type_name<'a, 'tcx>(cx: &CrateContext<'a, 'tcx>,
                     output.push_str(" -> ");
                     push_debuginfo_type_name(cx, result_type, true, output);
                 }
-                ty::FnDiverging => {
-                    output.push_str(" -> !");
-                }
             }
         },
         ty::TyClosure(..) => {

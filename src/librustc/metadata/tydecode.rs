@@ -722,7 +722,7 @@ fn parse_sig_<'a, 'tcx, F>(st: &mut PState<'a, 'tcx>, conv: &mut F) -> ty::PolyF
     let output = match peek(st) {
         'z' => {
           st.pos += 1;
-          ty::FnDiverging
+          ty::FnConverging(st.tcx.mk_empty())
         }
         _ => ty::FnConverging(parse_ty_(st, conv))
     };

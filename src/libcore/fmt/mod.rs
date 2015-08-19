@@ -1268,6 +1268,19 @@ macro_rules! fmt_refs {
 
 fmt_refs! { Debug, Display, Octal, Binary, LowerHex, UpperHex, LowerExp, UpperExp }
 
+macro_rules! argh {
+    () => {
+        impl Debug for ! {
+            fn fmt(&self, _: &mut Formatter) -> Result {
+                unreachable!()
+            }
+        }
+    }
+}
+
+#[cfg(not(stage0))]
+argh!();
+
 #[stable(feature = "rust1", since = "1.0.0")]
 impl Debug for bool {
     fn fmt(&self, f: &mut Formatter) -> Result {

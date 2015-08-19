@@ -1120,7 +1120,6 @@ impl<'tcx> Clean<Type> for ty::FnOutput<'tcx> {
     fn clean(&self, cx: &DocContext) -> Type {
         match *self {
             ty::FnConverging(ty) => ty.clean(cx),
-            ty::FnDiverging => Bottom
         }
     }
 }
@@ -1173,7 +1172,6 @@ impl Clean<Argument> for ast::Arg {
 pub enum FunctionRetTy {
     Return(Type),
     DefaultReturn,
-    NoReturn
 }
 
 impl Clean<FunctionRetTy> for ast::FunctionRetTy {
@@ -1181,7 +1179,6 @@ impl Clean<FunctionRetTy> for ast::FunctionRetTy {
         match *self {
             ast::Return(ref typ) => Return(typ.clean(cx)),
             ast::DefaultReturn(..) => DefaultReturn,
-            ast::NoReturn(..) => NoReturn
         }
     }
 }
