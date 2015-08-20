@@ -2544,12 +2544,6 @@ fn err_args<'tcx>(tcx: &ty::ctxt<'tcx>, len: usize) -> Vec<Ty<'tcx>> {
     (0..len).map(|_| tcx.types.err).collect()
 }
 
-fn write_call<'a, 'tcx>(fcx: &FnCtxt<'a, 'tcx>,
-                        call_expr: &ast::Expr,
-                        output: ty::Ty<'tcx>) {
-    fcx.write_expr_ty(call_expr.id, output);
-}
-
 // AST fragment checking
 fn check_lit<'a, 'tcx>(fcx: &FnCtxt<'a, 'tcx>,
                        lit: &ast::Lit,
@@ -2797,7 +2791,7 @@ fn check_expr_with_unifier<'a, 'tcx, F>(fcx: &FnCtxt<'a, 'tcx>,
                                                  DontTupleArguments,
                                                  expected);
 
-        write_call(fcx, expr, ret_ty);
+        fcx.write_expr_ty(expr, ret_ty);
     }
 
     // A generic function for checking the then and else in an if

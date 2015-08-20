@@ -23,7 +23,6 @@ use super::method;
 use super::structurally_resolved_type;
 use super::TupleArgumentsFlag;
 use super::UnresolvedTypeAction;
-use super::write_call;
 
 use CrateCtxt;
 use middle::infer;
@@ -268,7 +267,7 @@ fn confirm_builtin_call<'a,'tcx>(fcx: &FnCtxt<'a,'tcx>,
                          fn_sig.variadic,
                          TupleArgumentsFlag::DontTupleArguments);
 
-    write_call(fcx, call_expr, fn_sig.output);
+    fcx.write_expr_ty(call_expr, fn_sig.output);
 }
 
 fn confirm_deferred_closure_call<'a,'tcx>(fcx: &FnCtxt<'a,'tcx>,
@@ -297,7 +296,7 @@ fn confirm_deferred_closure_call<'a,'tcx>(fcx: &FnCtxt<'a,'tcx>,
                          fn_sig.variadic,
                          TupleArgumentsFlag::TupleArguments);
 
-    write_call(fcx, call_expr, fn_sig.output);
+    fcx.write_expr_ty(call_expr, fn_sig.output);
 }
 
 fn confirm_overloaded_call<'a,'tcx>(fcx: &FnCtxt<'a, 'tcx>,
@@ -315,7 +314,7 @@ fn confirm_overloaded_call<'a,'tcx>(fcx: &FnCtxt<'a, 'tcx>,
                                     arg_exprs,
                                     TupleArgumentsFlag::TupleArguments,
                                     expected);
-    write_call(fcx, call_expr, output_type);
+    fcx.write_expr_ty(call_expr, output_type);
 
     write_overloaded_call_method_map(fcx, call_expr, method_callee);
 }

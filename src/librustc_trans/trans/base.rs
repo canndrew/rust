@@ -1188,7 +1188,7 @@ pub fn new_fn_ctxt<'a, 'tcx>(ccx: &'a CrateContext<'a, 'tcx>,
                              llfndecl: ValueRef,
                              id: ast::NodeId,
                              has_env: bool,
-                             output_type: ty::FnOutput<'tcx>,
+                             output_type: ty::Ty<'tcx>,
                              param_substs: &'tcx Substs<'tcx>,
                              sp: Option<Span>,
                              block_arena: &'a TypedArena<common::BlockS<'a, 'tcx>>)
@@ -1203,12 +1203,10 @@ pub fn new_fn_ctxt<'a, 'tcx>(ccx: &'a CrateContext<'a, 'tcx>,
            },
            id, param_substs);
 
-    let uses_outptr = match output_type {
-        ty::FnConverging(output_type) => {
-            let substd_output_type =
-                monomorphize::apply_param_substs(ccx.tcx(), param_substs, &output_type);
-            type_of::return_uses_outptr(ccx, substd_output_type)
-        }
+    let uses_outptr = {
+        let substd_output_type =
+            monomorphize::apply_param_substs(ccx.tcx(), param_substs, &output_type);
+        type_of::return_uses_outptr(ccx, substd_output_type)
     };
     let debug_context = debuginfo::create_function_debug_context(ccx, id, param_substs, llfndecl);
     let (blk_id, cfg) = build_cfg(ccx.tcx(), id);
@@ -1252,7 +1250,7 @@ pub fn new_fn_ctxt<'a, 'tcx>(ccx: &'a CrateContext<'a, 'tcx>,
 /// and allocating space for the return pointer.
 pub fn init_function<'a, 'tcx>(fcx: &'a FunctionContext<'a, 'tcx>,
                                skip_retptr: bool,
-                               output: ty::FnOutput<'tcx>)
+                               output: ty::Ty<'tcx>)
                                -> Block<'a, 'tcx> {
     let entry_bcx = fcx.new_temp_block("entry-block");
 
@@ -1263,10 +1261,9 @@ pub fn init_function<'a, 'tcx>(fcx: &'a FunctionContext<'a, 'tcx>,
         llvm::LLVMGetFirstInstruction(entry_bcx.llbb)
     }));
 
-    let ty::FnConverging(output_type) = output;
     // This shouldn't need to recompute the return type,
     // as new_fn_ctxt did it already.
-    let substd_output_type = fcx.monomorphize(&output_type);
+    let substd_output_type = fcx.monomorphize(&output);
     if !return_type_is_void(fcx.ccx, substd_output_type) {
         // If the function returns nil/bot, there is no real return
         // value, so do not set `llretslotptr`.
@@ -1462,7 +1459,7 @@ pub fn create_datums_for_fn_args<'a, 'tcx>(mut bcx: Block<'a, 'tcx>,
 // and builds the return block.
 pub fn finish_fn<'blk, 'tcx>(fcx: &'blk FunctionContext<'blk, 'tcx>,
                              last_bcx: Block<'blk, 'tcx>,
-                             retty: ty::FnOutput<'tcx>,
+                             retty: ty::Ty<'tcx>,
                              ret_debug_loc: DebugLoc) {
     let _icx = push_ctxt("finish_fn");
 
@@ -1488,7 +1485,7 @@ pub fn finish_fn<'blk, 'tcx>(fcx: &'blk FunctionContext<'blk, 'tcx>,
 // Builds the return block for a function.
 pub fn build_return_block<'blk, 'tcx>(fcx: &FunctionContext<'blk, 'tcx>,
                                       ret_cx: Block<'blk, 'tcx>,
-                                      retty: ty::FnOutput<'tcx>,
+                                      retty: ty::Ty<'tcx>,
                                       ret_debug_location: DebugLoc) {
     if fcx.llretslotptr.get().is_none() ||
        (!fcx.needs_ret_allocas && fcx.caller_expects_out_pointer) {
@@ -1512,14 +1509,13 @@ pub fn build_return_block<'blk, 'tcx>(fcx: &FunctionContext<'blk, 'tcx>,
                 retptr.erase_from_parent();
             }
 
-            let retval = if retty == ty::FnConverging(fcx.ccx.tcx().types.bool) {
+            let retval = if retty == fcx.ccx.tcx().types.bool {
                 Trunc(ret_cx, retval, Type::i1(fcx.ccx))
             } else {
                 retval
             };
 
             if fcx.caller_expects_out_pointer {
-                let ty::FnConverging(retty) = retty;
                 store_ty(ret_cx, retval, get_param(fcx.llfn, 0), retty);
                 RetVoid(ret_cx, ret_debug_location)
             } else {
@@ -1527,14 +1523,12 @@ pub fn build_return_block<'blk, 'tcx>(fcx: &FunctionContext<'blk, 'tcx>,
             }
         }
         // Otherwise, copy the return value to the ret slot
-        None => match retty {
-            ty::FnConverging(retty) => {
-                if fcx.caller_expects_out_pointer {
-                    memcpy_ty(ret_cx, get_param(fcx.llfn, 0), retslot, retty);
-                    RetVoid(ret_cx, ret_debug_location)
-                } else {
-                    Ret(ret_cx, load_ty(ret_cx, retslot, retty), ret_debug_location)
-                }
+        None => {
+            if fcx.caller_expects_out_pointer {
+                memcpy_ty(ret_cx, get_param(fcx.llfn, 0), retslot, retty);
+                RetVoid(ret_cx, ret_debug_location)
+            } else {
+                Ret(ret_cx, load_ty(ret_cx, retslot, retty), ret_debug_location)
             }
         }
     }
@@ -1550,7 +1544,7 @@ pub fn trans_closure<'a, 'b, 'tcx>(ccx: &CrateContext<'a, 'tcx>,
                                    param_substs: &'tcx Substs<'tcx>,
                                    fn_ast_id: ast::NodeId,
                                    _attributes: &[ast::Attribute],
-                                   output_type: ty::FnOutput<'tcx>,
+                                   output_type: ty::Ty<'tcx>,
                                    abi: Abi,
                                    closure_env: closure::ClosureEnv<'b>) {
     ccx.stats().n_closures.set(ccx.stats().n_closures.get() + 1);
@@ -1613,7 +1607,7 @@ pub fn trans_closure<'a, 'b, 'tcx>(ccx: &CrateContext<'a, 'tcx>,
     debuginfo::start_emitting_source_locations(&fcx);
 
     let dest = match fcx.llretslotptr.get() {
-        Some(_) => expr::SaveIn(fcx.get_ret_slot(bcx, ty::FnConverging(block_ty), "iret_slot")),
+        Some(_) => expr::SaveIn(fcx.get_ret_slot(bcx, block_ty, "iret_slot")),
         None => {
             assert!(type_is_zero_size(bcx.ccx(), block_ty));
             expr::Ignore
@@ -1706,7 +1700,7 @@ pub fn trans_named_tuple_constructor<'blk, 'tcx>(mut bcx: Block<'blk, 'tcx>,
 
     let result_ty = match ctor_ty.sty {
         ty::TyBareFn(_, ref bft) => {
-            bcx.tcx().erase_late_bound_regions(&bft.sig.output()).unwrap()
+            bcx.tcx().erase_late_bound_regions(&bft.sig.output())
         }
         _ => ccx.sess().bug(
             &format!("trans_enum_variant_constructor: \
@@ -1801,9 +1795,9 @@ fn trans_enum_variant_or_tuple_like_struct<'a, 'tcx>(ccx: &CrateContext<'a, 'tcx
 
     let arg_tys = ccx.tcx().erase_late_bound_regions(&ctor_ty.fn_args());
 
-    if !type_is_zero_size(fcx.ccx, result_ty.unwrap()) {
+    if !type_is_zero_size(fcx.ccx, result_ty) {
         let dest = fcx.get_ret_slot(bcx, result_ty, "eret_slot");
-        let repr = adt::represent_type(ccx, result_ty.unwrap());
+        let repr = adt::represent_type(ccx, result_ty);
         let mut llarg_idx = fcx.arg_offset() as c_uint;
         for (i, arg_ty) in arg_tys.into_iter().enumerate() {
             let lldestptr = adt::trans_field_ptr(bcx,
@@ -2138,8 +2132,8 @@ pub fn register_fn_llvmty(ccx: &CrateContext,
                           llfty: Type) -> ValueRef {
     debug!("register_fn_llvmty id={} sym={}", node_id, sym);
 
-    let llfn = declare::define_fn(ccx, &sym[..], cc, llfty,
-                                   ty::FnConverging(ccx.tcx().mk_nil())).unwrap_or_else(||{
+    let llfn = declare::define_fn(ccx, &sym[..], cc, llfty, ccx.tcx().mk_nil())
+                        .unwrap_or_else(||{
         ccx.sess().span_fatal(sp, &format!("symbol `{}` is already defined", sym));
     });
     finish_register_fn(ccx, sym, node_id);
