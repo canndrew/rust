@@ -263,10 +263,7 @@ impl<'a,'tcx:'a> Relate<'a,'tcx> for ty::FnSig<'tcx> {
                                           &a.inputs,
                                           &b.inputs));
 
-        let output = try!(match (a.output, b.output) {
-            (ty::FnConverging(a_ty), ty::FnConverging(b_ty)) =>
-                Ok(ty::FnConverging(try!(relation.relate(&a_ty, &b_ty)))),
-        });
+        let output =  try!(relation.relate(&a.output, &b.output));
 
         return Ok(ty::FnSig {inputs: inputs,
                              output: output,

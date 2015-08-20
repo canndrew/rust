@@ -501,12 +501,10 @@ impl<'a, 'tcx> FunctionContext<'a, 'tcx> {
     }
 
     pub fn get_ret_slot(&self, bcx: Block<'a, 'tcx>,
-                        output: ty::FnOutput<'tcx>,
+                        output: ty::Ty<'tcx>,
                         name: &str) -> ValueRef {
         if self.needs_ret_allocas {
-            base::alloca_no_lifetime(bcx, match output {
-                ty::FnConverging(output_type) => type_of::type_of(bcx.ccx(), output_type),
-            }, name)
+            base::alloca_no_lifetime(bcx, type_of::type_of(bcx.ccx(), output), name)
         } else {
             self.llretslotptr.get().unwrap()
         }
@@ -1249,7 +1247,7 @@ pub fn inlined_variant_def<'a, 'tcx>(ccx: &CrateContext<'a, 'tcx>,
            inlined_vid);
     let adt_def = match ctor_ty.sty {
         ty::TyBareFn(_, &ty::BareFnTy { sig: ty::Binder(ty::FnSig {
-            output: ty::FnConverging(ty), ..
+            output: ty, ..
         }), ..}) => ty,
         _ => ctor_ty
     }.ty_adt_def().unwrap();

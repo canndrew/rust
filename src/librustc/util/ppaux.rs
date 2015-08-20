@@ -34,7 +34,7 @@ pub fn verbose() -> bool {
 fn fn_sig(f: &mut fmt::Formatter,
           inputs: &[Ty],
           variadic: bool,
-          output: ty::FnOutput)
+          output: ty::Ty)
           -> fmt::Result {
     try!(write!(f, "("));
     let mut inputs = inputs.iter();
@@ -49,14 +49,10 @@ fn fn_sig(f: &mut fmt::Formatter,
     }
     try!(write!(f, ")"));
 
-    match output {
-        ty::FnConverging(ty) => {
-            if !ty.is_nil() {
-                try!(write!(f, " -> {}", ty));
-            }
-            Ok(())
-        }
+    if !output.is_nil() {
+        try!(write!(f, " -> {}", output));
     }
+    Ok(())
 }
 
 fn parameterized<GG>(f: &mut fmt::Formatter,
@@ -111,7 +107,7 @@ fn parameterized<GG>(f: &mut fmt::Formatter,
     if fn_trait_kind.is_some() && projections.len() == 1 {
         let projection_ty = projections[0].ty;
         if let TyTuple(ref args) = substs.types.get_slice(subst::TypeSpace)[0].sty {
-            return fn_sig(f, args, false, ty::FnConverging(projection_ty));
+            return fn_sig(f, args, false, projection_ty);
         }
     }
 

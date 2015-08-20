@@ -110,19 +110,17 @@ pub fn type_of_rust_fn<'a, 'tcx>(cx: &CrateContext<'a, 'tcx>,
 
     // Arg 0: Output pointer.
     // (if the output type is non-immediate)
-    let lloutputtype = match sig.output {
-        ty::FnConverging(output) => {
-            let use_out_pointer = return_uses_outptr(cx, output);
-            let lloutputtype = arg_type_of(cx, output);
-            // Use the output as the actual return value if it's immediate.
-            if use_out_pointer {
-                atys.push(lloutputtype.ptr_to());
-                Type::void(cx)
-            } else if return_type_is_void(cx, output) {
-                Type::void(cx)
-            } else {
-                lloutputtype
-            }
+    let lloutputtype = {
+        let use_out_pointer = return_uses_outptr(cx, sig.output);
+        let lloutputtype = arg_type_of(cx, sig.output);
+        // Use the output as the actual return value if it's immediate.
+        if use_out_pointer {
+            atys.push(lloutputtype.ptr_to());
+            Type::void(cx)
+        } else if return_type_is_void(cx, sig.output) {
+            Type::void(cx)
+        } else {
+            lloutputtype
         }
     };
 

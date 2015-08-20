@@ -105,9 +105,7 @@ fn push_subtypes<'tcx>(stack: &mut Vec<Ty<'tcx>>, parent_ty: Ty<'tcx>) {
 }
 
 fn push_sig_subtypes<'tcx>(stack: &mut Vec<Ty<'tcx>>, sig: &ty::PolyFnSig<'tcx>) {
-    match sig.0.output {
-        ty::FnConverging(output) => { stack.push(output); }
-    }
+    stack.push(sig.0.output);
     push_reversed(stack, &sig.0.inputs);
 }
 

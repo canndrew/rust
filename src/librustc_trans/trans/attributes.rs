@@ -175,7 +175,6 @@ pub fn from_fn_type<'a, 'tcx>(ccx: &CrateContext<'a, 'tcx>, fn_type: ty::Ty<'tcx
 
     // Index 0 is the return value of the llvm func, so we start at 1
     let mut idx = 1;
-    let ty::FnConverging(ret_ty) = ret_ty;
     // A function pointer is called without the declaration
     // available, so we have to apply any attributes with ABI
     // implications directly to the call instruction. Right now,

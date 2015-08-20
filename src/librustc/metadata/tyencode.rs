@@ -358,11 +358,7 @@ fn enc_fn_sig<'a, 'tcx>(w: &mut Encoder, cx: &ctxt<'a, 'tcx>,
     } else {
         mywrite!(w, "N");
     }
-    match fsig.0.output {
-        ty::FnConverging(result_type) => {
-            enc_ty(w, cx, result_type);
-        }
-    }
+    enc_ty(w, cx, fsig.0.output);
 }
 
 pub fn enc_builtin_bounds(w: &mut Encoder, _cx: &ctxt, bs: &ty::BuiltinBounds) {

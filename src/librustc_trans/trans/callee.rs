@@ -710,9 +710,6 @@ pub fn trans_call_inner<'a, 'blk, 'tcx, F>(bcx: Block<'blk, 'tcx>,
     let opt_llretslot = dest.and_then(|dest| match dest {
         expr::SaveIn(dst) => Some(dst),
         expr::Ignore => {
-            let ret_ty = match ret_ty {
-                ty::FnConverging(ret_ty) => ret_ty,
-            };
             if !is_rust_fn ||
               type_of::return_uses_outptr(ccx, ret_ty) ||
               bcx.fcx.type_needs_drop(ret_ty) {
@@ -743,7 +740,7 @@ pub fn trans_call_inner<'a, 'blk, 'tcx, F>(bcx: Block<'blk, 'tcx>,
     if is_rust_fn {
         let mut llargs = Vec::new();
 
-        if let (ty::FnConverging(ret_ty), Some(mut llretslot)) = (ret_ty, opt_llretslot) {
+        if let Some(mut llretslot) = opt_llretslot {
             if type_of::return_uses_outptr(ccx, ret_ty) {
                 let llformal_ret_ty = type_of::type_of(ccx, ret_ty).ptr_to();
                 let llret_ty = common::val_ty(llretslot);
@@ -784,15 +781,12 @@ pub fn trans_call_inner<'a, 'blk, 'tcx, F>(bcx: Block<'blk, 'tcx>,
 
         // If the Rust convention for this type is return via
         // the return value, copy it into llretslot.
-        match (opt_llretslot, ret_ty) {
-            (Some(llretslot), ty::FnConverging(ret_ty)) => {
-                if !type_of::return_uses_outptr(bcx.ccx(), ret_ty) &&
-                    !common::type_is_zero_size(bcx.ccx(), ret_ty)
-                {
-                    store_ty(bcx, llret, llretslot, ret_ty)
-                }
+        if let Some(llretslot) = opt_llretslot {
+            if !type_of::return_uses_outptr(bcx.ccx(), ret_ty) &&
+                !common::type_is_zero_size(bcx.ccx(), ret_ty)
+            {
+                store_ty(bcx, llret, llretslot, ret_ty)
             }
-            (_, _) => {}
         }
     } else {
         // Lang items are the only case where dest is None, and
@@ -826,8 +820,8 @@ pub fn trans_call_inner<'a, 'blk, 'tcx, F>(bcx: Block<'blk, 'tcx>,
 
     // If the caller doesn't care about the result of this fn call,
     // drop the temporary slot we made.
-    match (dest, opt_llretslot, ret_ty) {
-        (Some(expr::Ignore), Some(llretslot), ty::FnConverging(ret_ty)) => {
+    match (dest, opt_llretslot) {
+        (Some(expr::Ignore), Some(llretslot)) => {
             // drop the value if it is not being saved.
             bcx = glue::drop_ty(bcx,
                                 llretslot,
@@ -838,10 +832,8 @@ pub fn trans_call_inner<'a, 'blk, 'tcx, F>(bcx: Block<'blk, 'tcx>,
         _ => {}
     }
 
-    match ret_ty {
-        ty::FnConverging(ty) => if ty.is_empty(bcx.tcx()) {
-            Unreachable(bcx);
-        }
+    if ret_ty.is_empty(bcx.tcx()) {
+        Unreachable(bcx);
     }
 
     Result::new(bcx, llresult)

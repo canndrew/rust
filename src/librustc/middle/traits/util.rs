@@ -461,7 +461,7 @@ pub fn closure_trait_ref_and_return_type<'tcx>(
         def_id: fn_trait_def_id,
         substs: tcx.mk_substs(trait_substs),
     };
-    ty::Binder((trait_ref, sig.0.output.unwrap()))
+    ty::Binder((trait_ref, sig.0.output))
 }
 
 impl<'tcx,O:fmt::Debug> fmt::Debug for super::Obligation<'tcx, O> {

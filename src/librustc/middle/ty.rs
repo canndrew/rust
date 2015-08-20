@@ -21,7 +21,6 @@ pub use self::Representability::*;
 pub use self::AutoRef::*;
 pub use self::DtorKind::*;
 pub use self::ExplicitSelfCategory::*;
-pub use self::FnOutput::*;
 pub use self::Region::*;
 pub use self::ImplOrTraitItemContainer::*;
 pub use self::BorrowKind::*;
@@ -1410,36 +1409,6 @@ pub struct ClosureTy<'tcx> {
     pub sig: PolyFnSig<'tcx>,
 }
 
-#[derive(Clone, Copy, PartialEq, Eq, Hash, Debug)]
-pub enum FnOutput<'tcx> {
-    FnConverging(Ty<'tcx>),
-}
-
-impl<'tcx> FnOutput<'tcx> {
-    pub fn diverges(&self) -> bool {
-        match *self {
-            FnConverging(ty) => match ty.sty {
-                TyEmpty => true,    // FIXME: could we use is_empty here?
-                _       => false,
-            }
-        }
-    }
-
-    pub fn unwrap(self) -> Ty<'tcx> {
-        match self {
-            ty::FnConverging(t) => t,
-        }
-    }
-}
-
-pub type PolyFnOutput<'tcx> = Binder<FnOutput<'tcx>>;
-
-impl<'tcx> PolyFnOutput<'tcx> {
-    pub fn diverges(&self) -> bool {
-        self.0.diverges()
-    }
-}
-
 /// Signature of a function type, which I have arbitrarily
 /// decided to use to refer to the input/output types.
 ///
@@ -1449,7 +1418,7 @@ impl<'tcx> PolyFnOutput<'tcx> {
 #[derive(Clone, PartialEq, Eq, Hash)]
 pub struct FnSig<'tcx> {
     pub inputs: Vec<Ty<'tcx>>,
-    pub output: FnOutput<'tcx>,
+    pub output: Ty<'tcx>,
     pub variadic: bool
 }
 
@@ -1462,7 +1431,7 @@ impl<'tcx> PolyFnSig<'tcx> {
     pub fn input(&self, index: usize) -> ty::Binder<Ty<'tcx>> {
         self.map_bound_ref(|fn_sig| fn_sig.inputs[index])
     }
-    pub fn output(&self) -> ty::Binder<FnOutput<'tcx>> {
+    pub fn output(&self) -> ty::Binder<Ty<'tcx>> {
         self.map_bound_ref(|fn_sig| fn_sig.output.clone())
     }
     pub fn variadic(&self) -> bool {
@@ -3675,9 +3644,7 @@ impl FlagComputation {
         let mut computation = FlagComputation::new();
 
         computation.add_tys(&fn_sig.0.inputs);
-
-        let ty::FnConverging(output) = fn_sig.0.output;
-        computation.add_ty(output);
+        computation.add_ty(fn_sig.0.output);
 
         self.add_bound_computation(&computation);
     }
@@ -4017,7 +3984,7 @@ impl<'tcx> ctxt<'tcx> {
             abi: abi::Rust,
             sig: ty::Binder(FnSig {
                 inputs: input_args,
-                output: ty::FnConverging(output),
+                output: output,
                 variadic: false
             })
         }))
@@ -5070,7 +5037,7 @@ impl<'tcx> TyS<'tcx> {
         self.fn_sig().inputs()
     }
 
-    pub fn fn_ret(&self) -> Binder<FnOutput<'tcx>> {
+    pub fn fn_ret(&self) -> Binder<Ty<'tcx>> {
         self.fn_sig().output()
     }
 
@@ -5134,7 +5101,7 @@ impl<'tcx> TyS<'tcx> {
                                         // regions fully instantiated and coverge.
                                         let fn_ret =
                                             cx.no_late_bound_regions(&method_ty.fn_ret()).unwrap();
-                                        adjusted_ty = fn_ret.unwrap();
+                                        adjusted_ty = fn_ret;
                                     }
                                     None => {}
                                 }
@@ -6423,8 +6390,7 @@ impl<'tcx> ctxt<'tcx> {
             let fn_sig = |state: &mut SipHasher, sig: &Binder<FnSig<'tcx>>| {
                 let sig = tcx.anonymize_late_bound_regions(sig).0;
                 for a in &sig.inputs { helper(tcx, *a, svh, state); }
-                let ty::FnConverging(output) = sig.output;
-                helper(tcx, output, svh, state);
+                helper(tcx, sig.output, svh, state);
             };
             ty.maybe_walk(|ty| {
                 match ty.sty {
@@ -7059,14 +7025,6 @@ impl<'tcx,T:RegionEscape> RegionEscape for Binder<T> {
     }
 }
 
-impl<'tcx> RegionEscape for FnOutput<'tcx> {
-    fn has_regions_escaping_depth(&self, depth: u32) -> bool {
-        match *self {
-            FnConverging(t) => t.has_regions_escaping_depth(depth),
-        }
-    }
-}
-
 impl<'tcx> RegionEscape for EquatePredicate<'tcx> {
     fn has_regions_escaping_depth(&self, depth: u32) -> bool {
         self.0.has_regions_escaping_depth(depth) || self.1.has_regions_escaping_depth(depth)
@@ -7285,14 +7243,6 @@ impl<T> HasTypeFlags for Binder<T>
 {
     fn has_type_flags(&self, flags: TypeFlags) -> bool {
         self.0.has_type_flags(flags)
-    }
-}
-
-impl<'tcx> HasTypeFlags for FnOutput<'tcx> {
-    fn has_type_flags(&self, flags: TypeFlags) -> bool {
-        match *self {
-            FnConverging(t) => t.has_type_flags(flags),
-        }
     }
 }
 

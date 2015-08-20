@@ -146,7 +146,7 @@ impl<'ccx, 'tcx> CheckTypeWellFormedVisitor<'ccx, 'tcx> {
                                                                 item.id);
         let tables = RefCell::new(ty::Tables::empty());
         let inh = Inherited::new(ccx.tcx, &tables, param_env);
-        let fcx = blank_fn_ctxt(ccx, &inh, ty::FnConverging(type_scheme.ty), item.id);
+        let fcx = blank_fn_ctxt(ccx, &inh, type_scheme.ty, item.id);
         f(self, &fcx);
         fcx.select_all_obligations_or_error();
         regionck::regionck_item(&fcx, item);

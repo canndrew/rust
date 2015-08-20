@@ -667,7 +667,7 @@ fn visit_expr(rcx: &mut Rcx, expr: &ast::Expr) {
                                    None::<ast::Expr>.iter(), true);
                     let fn_ret = // late-bound regions in overloaded method calls are instantiated
                         rcx.tcx().no_late_bound_regions(&method.ty.fn_ret()).unwrap();
-                    fn_ret.unwrap()
+                    fn_ret
                 }
                 None => rcx.resolve_node_type(base.id)
             };
@@ -926,13 +926,9 @@ fn constrain_autoderefs<'a, 'tcx>(rcx: &mut Rcx<'a, 'tcx>,
                 // Specialized version of constrain_call.
                 type_must_outlive(rcx, infer::CallRcvr(deref_expr.span),
                                   self_ty, r_deref_expr);
-                match fn_sig.output {
-                    ty::FnConverging(return_type) => {
-                        type_must_outlive(rcx, infer::CallReturn(deref_expr.span),
-                                          return_type, r_deref_expr);
-                        return_type
-                    }
-                }
+                type_must_outlive(rcx, infer::CallReturn(deref_expr.span),
+                                  fn_sig.output, r_deref_expr);
+                fn_sig.output
             }
             None => derefd_ty
         };

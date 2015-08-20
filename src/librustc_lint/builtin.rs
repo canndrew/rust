@@ -620,15 +620,11 @@ impl<'a, 'tcx> ImproperCTypesVisitor<'a, 'tcx> {
                 }
 
                 let sig = cx.erase_late_bound_regions(&bare_fn.sig);
-                match sig.output {
-                    ty::FnConverging(output) => {
-                        if !output.is_nil() {
-                            let r = self.check_type_for_ffi(cache, output);
-                            match r {
-                                FfiSafe => {}
-                                _ => { return r; }
-                            }
-                        }
+                if !sig.output.is_nil() {
+                    let r = self.check_type_for_ffi(cache, sig.output);
+                    match r {
+                        FfiSafe => {}
+                        _ => { return r; }
                     }
                 }
                 for arg in sig.inputs {
@@ -2505,8 +2501,8 @@ impl LintPass for MutableTransmutes {
                 let typ = cx.tcx.node_id_to_type(expr.id);
                 match typ.sty {
                     ty::TyBareFn(_, ref bare_fn) if bare_fn.abi == RustIntrinsic => {
-                        let ty::FnConverging(to) = bare_fn.sig.0.output;
                         let from = bare_fn.sig.0.inputs[0];
+                        let to   = bare_fn.sig.0.output;
                         return Some((&from.sty, &to.sty));
                     },
                     _ => ()

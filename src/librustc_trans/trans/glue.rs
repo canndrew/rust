@@ -262,10 +262,10 @@ fn get_drop_glue_core<'a, 'tcx>(ccx: &CrateContext<'a, 'tcx>,
     let (arena, fcx): (TypedArena<_>, FunctionContext);
     arena = TypedArena::new();
     fcx = new_fn_ctxt(ccx, llfn, ast::DUMMY_NODE_ID, false,
-                      ty::FnConverging(ccx.tcx().mk_nil()),
+                      ccx.tcx().mk_nil(),
                       empty_substs, None, &arena);
 
-    let bcx = init_function(&fcx, false, ty::FnConverging(ccx.tcx().mk_nil()));
+    let bcx = init_function(&fcx, false, ccx.tcx().mk_nil());
 
     update_linkage(ccx, llfn, None, OriginalTranslation);
 
@@ -280,7 +280,7 @@ fn get_drop_glue_core<'a, 'tcx>(ccx: &CrateContext<'a, 'tcx>,
 
     let llrawptr0 = get_param(llfn, fcx.arg_offset() as c_uint);
     let bcx = make_drop_glue(bcx, llrawptr0, g);
-    finish_fn(&fcx, bcx, ty::FnConverging(ccx.tcx().mk_nil()), DebugLoc::None);
+    finish_fn(&fcx, bcx, ccx.tcx().mk_nil(), DebugLoc::None);
 
     llfn
 }

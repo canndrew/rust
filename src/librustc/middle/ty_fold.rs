@@ -105,12 +105,6 @@ pub trait TypeFolder<'tcx> : Sized {
         super_fold_fn_sig(self, sig)
     }
 
-    fn fold_output(&mut self,
-                      output: &ty::FnOutput<'tcx>)
-                      -> ty::FnOutput<'tcx> {
-        super_fold_output(self, output)
-    }
-
     fn fold_bare_fn_ty(&mut self,
                        fty: &ty::BareFnTy<'tcx>)
                        -> ty::BareFnTy<'tcx>
@@ -254,12 +248,6 @@ impl<'tcx> TypeFoldable<'tcx> for ty::ClosureTy<'tcx> {
 impl<'tcx> TypeFoldable<'tcx> for ty::TypeAndMut<'tcx> {
     fn fold_with<F: TypeFolder<'tcx>>(&self, folder: &mut F) -> ty::TypeAndMut<'tcx> {
         folder.fold_mt(self)
-    }
-}
-
-impl<'tcx> TypeFoldable<'tcx> for ty::FnOutput<'tcx> {
-    fn fold_with<F: TypeFolder<'tcx>>(&self, folder: &mut F) -> ty::FnOutput<'tcx> {
-        folder.fold_output(self)
     }
 }
 
@@ -644,14 +632,6 @@ pub fn super_fold_fn_sig<'tcx, T: TypeFolder<'tcx>>(this: &mut T,
     ty::FnSig { inputs: sig.inputs.fold_with(this),
                 output: sig.output.fold_with(this),
                 variadic: sig.variadic }
-}
-
-pub fn super_fold_output<'tcx, T: TypeFolder<'tcx>>(this: &mut T,
-                                                    output: &ty::FnOutput<'tcx>)
-                                                    -> ty::FnOutput<'tcx> {
-    match *output {
-        ty::FnConverging(ref ty) => ty::FnConverging(ty.fold_with(this)),
-    }
 }
 
 pub fn super_fold_bare_fn_ty<'tcx, T: TypeFolder<'tcx>>(this: &mut T,

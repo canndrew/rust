@@ -56,7 +56,7 @@ pub fn declare_global(ccx: &CrateContext, name: &str, ty: Type) -> llvm::ValueRe
 /// If there’s a value with the same name already declared, the function will
 /// update the declaration and return existing ValueRef instead.
 pub fn declare_fn(ccx: &CrateContext, name: &str, callconv: llvm::CallConv,
-                  ty: Type, output: ty::FnOutput) -> ValueRef {
+                  ty: Type, output: ty::Ty) -> ValueRef {
     debug!("declare_fn(name={:?})", name);
     let namebuf = CString::new(name).unwrap_or_else(|_|{
         ccx.sess().bug(&format!("name {:?} contains an interior null byte", name))
@@ -70,11 +70,8 @@ pub fn declare_fn(ccx: &CrateContext, name: &str, callconv: llvm::CallConv,
     // be merged.
     llvm::SetUnnamedAddr(llfn, true);
 
-    match output {
-        ty::FnConverging(ty) => match ty.sty {  // FIXME: use is_empty()
-            ty::TyEmpty => llvm::SetFunctionAttribute(llfn, llvm::Attribute::NoReturn),
-            _           => (),
-        }
+    if output.is_empty(ccx.tcx()) {
+        llvm::SetFunctionAttribute(llfn, llvm::Attribute::NoReturn);
     }
 
     if ccx.tcx().sess.opts.cg.no_redzone
@@ -95,7 +92,7 @@ pub fn declare_fn(ccx: &CrateContext, name: &str, callconv: llvm::CallConv,
 /// update the declaration and return existing ValueRef instead.
 pub fn declare_cfn(ccx: &CrateContext, name: &str, fn_type: Type,
                    output: ty::Ty) -> ValueRef {
-    declare_fn(ccx, name, llvm::CCallConv, fn_type, ty::FnConverging(output))
+    declare_fn(ccx, name, llvm::CCallConv, fn_type, output)
 }
 
 
@@ -177,7 +174,7 @@ pub fn define_global(ccx: &CrateContext, name: &str, ty: Type) -> Option<ValueRe
 /// case an error should be reported to the user, because it usually happens due
 /// to user’s fault (e.g. misuse of #[no_mangle] or #[export_name] attributes).
 pub fn define_fn(ccx: &CrateContext, name: &str, callconv: llvm::CallConv,
-                 fn_type: Type, output: ty::FnOutput) -> Option<ValueRef> {
+                 fn_type: Type, output: ty::Ty) -> Option<ValueRef> {
     if get_defined_value(ccx, name).is_some() {
         None
     } else {

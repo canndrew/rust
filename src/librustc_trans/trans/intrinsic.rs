@@ -176,7 +176,7 @@ pub fn trans_intrinsic_call<'a, 'blk, 'tcx>(mut bcx: Block<'blk, 'tcx>,
 
     // For `transmute` we can just trans the input expr directly into dest
     if name == "transmute" {
-        let llret_ty = type_of::type_of(ccx, ret_ty.unwrap());
+        let llret_ty = type_of::type_of(ccx, ret_ty);
         match args {
             callee::ArgExprs(arg_exprs) => {
                 assert_eq!(arg_exprs.len(), 1);
@@ -366,10 +366,6 @@ pub fn trans_intrinsic_call<'a, 'blk, 'tcx>(mut bcx: Block<'blk, 'tcx>,
         Unreachable(bcx);
         return Result::new(bcx, C_nil(ccx));
     }
-
-    let ret_ty = match ret_ty {
-        ty::FnConverging(ret_ty) => ret_ty,
-    };
 
     let llret_ty = type_of::type_of(ccx, ret_ty);
 
@@ -1235,7 +1231,7 @@ fn trans_gnu_try<'blk, 'tcx>(bcx: Block<'blk, 'tcx>,
 // Helper to generate the `Ty` associated with `rust_try`
 fn get_rust_try_fn<'a, 'tcx>(fcx: &FunctionContext<'a, 'tcx>,
                              f: &mut FnMut(Ty<'tcx>,
-                                           ty::FnOutput<'tcx>) -> ValueRef)
+                                           ty::Ty<'tcx>) -> ValueRef)
                              -> ValueRef {
     let ccx = fcx.ccx;
     if let Some(llfn) = *ccx.rust_try_fn().borrow() {
@@ -1250,12 +1246,12 @@ fn get_rust_try_fn<'a, 'tcx>(fcx: &FunctionContext<'a, 'tcx>,
         abi: abi::Rust,
         sig: ty::Binder(ty::FnSig {
             inputs: vec![i8p],
-            output: ty::FnOutput::FnConverging(tcx.mk_nil()),
+            output: tcx.mk_nil(),
             variadic: false,
         }),
     });
     let fn_ty = tcx.mk_fn(None, fn_ty);
-    let output = ty::FnOutput::FnConverging(i8p);
+    let output = i8p;
     let try_fn_ty  = tcx.mk_bare_fn(ty::BareFnTy {
         unsafety: ast::Unsafety::Unsafe,
         abi: abi::Rust,

@@ -1135,7 +1135,7 @@ impl<'a, 'tcx> Liveness<'a, 'tcx> {
 
           ast::ExprCall(ref f, ref args) => {
             let diverges = !self.ir.tcx.is_method_call(expr.id) &&
-                self.ir.tcx.expr_ty_adjusted(&**f).fn_ret().diverges();
+                self.ir.tcx.expr_ty_adjusted(&**f).fn_ret().0.is_empty(self.ir.tcx);
             let succ = if diverges {
                 self.s.exit_ln
             } else {
@@ -1148,7 +1148,7 @@ impl<'a, 'tcx> Liveness<'a, 'tcx> {
           ast::ExprMethodCall(_, _, ref args) => {
             let method_call = ty::MethodCall::expr(expr.id);
             let method_ty = self.ir.tcx.tables.borrow().method_map[&method_call].ty;
-            let succ = if method_ty.fn_ret().diverges() {
+            let succ = if method_ty.fn_ret().0.is_empty(self.ir.tcx) {
                 self.s.exit_ln
             } else {
                 succ
@@ -1490,7 +1490,7 @@ fn check_fn(_v: &Liveness,
 }
 
 impl<'a, 'tcx> Liveness<'a, 'tcx> {
-    fn fn_ret(&self, id: NodeId) -> ty::PolyFnOutput<'tcx> {
+    fn fn_ret(&self, id: NodeId) -> ty::Binder<ty::Ty<'tcx>> {
         let fn_ty = self.ir.tcx.node_id_to_type(id);
         match fn_ty.sty {
             ty::TyClosure(closure_def_id, ref substs) =>
@@ -1512,39 +1512,30 @@ impl<'a, 'tcx> Liveness<'a, 'tcx> {
                 region::DestructionScopeData::new(body.id),
                 &self.fn_ret(id));
 
-        match fn_ret {
-            ty::FnConverging(t_ret)
-                if self.live_on_entry(entry_ln, self.s.no_ret_var).is_some() => {
-
-                if t_ret.is_nil() {
-                    // for nil return types, it is ok to not return a value expl.
-                } else {
-                    let ends_with_stmt = match body.expr {
-                        None if !body.stmts.is_empty() =>
-                            match body.stmts.first().unwrap().node {
-                                ast::StmtSemi(ref e, _) => {
-                                    self.ir.tcx.expr_ty(&**e) == t_ret
-                                },
-                                _ => false
-                            },
+        if self.live_on_entry(entry_ln, self.s.no_ret_var).is_some() && ! fn_ret.is_nil() {
+            let ends_with_stmt = match body.expr {
+                None if !body.stmts.is_empty() =>
+                    match body.stmts.first().unwrap().node {
+                        ast::StmtSemi(ref e, _) => {
+                            self.ir.tcx.expr_ty(&**e) == fn_ret
+                        },
                         _ => false
-                    };
-                    span_err!(self.ir.tcx.sess, sp, E0269, "not all control paths return a value");
-                    if ends_with_stmt {
-                        let last_stmt = body.stmts.first().unwrap();
-                        let original_span = original_sp(self.ir.tcx.sess.codemap(),
-                                                        last_stmt.span, sp);
-                        let span_semicolon = Span {
-                            lo: original_span.hi - BytePos(1),
-                            hi: original_span.hi,
-                            expn_id: original_span.expn_id
-                        };
-                        self.ir.tcx.sess.span_help(
-                            span_semicolon, "consider removing this semicolon:");
-                    }
-                }
+                    },
+                _ => false
+            };
+            span_err!(self.ir.tcx.sess, sp, E0269, "not all control paths return a value");
+            if ends_with_stmt {
+                let last_stmt = body.stmts.first().unwrap();
+                let original_span = original_sp(self.ir.tcx.sess.codemap(),
+                                                last_stmt.span, sp);
+                let span_semicolon = Span {
+                    lo: original_span.hi - BytePos(1),
+                    hi: original_span.hi,
+                    expn_id: original_span.expn_id
+                };
+                self.ir.tcx.sess.span_help(
+                    span_semicolon, "consider removing this semicolon:");
             }
-            _ => {}
         }
     }
 

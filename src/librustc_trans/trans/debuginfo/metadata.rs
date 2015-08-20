@@ -276,13 +276,9 @@ impl<'tcx> TypeMap<'tcx> {
                 }
 
                 unique_type_id.push_str(")->");
-                match sig.output {
-                    ty::FnConverging(ret_ty) => {
-                        let return_type_id = self.get_unique_type_id_of_type(cx, ret_ty);
-                        let return_type_id = self.get_unique_type_id_as_string(return_type_id);
-                        unique_type_id.push_str(&return_type_id[..]);
-                    }
-                }
+                let return_type_id = self.get_unique_type_id_of_type(cx, sig.output);
+                let return_type_id = self.get_unique_type_id_as_string(return_type_id);
+                unique_type_id.push_str(&return_type_id[..]);
             },
             ty::TyClosure(_, ref substs) if substs.upvar_tys.is_empty() => {
                 push_debuginfo_type_name(cx, type_, false, &mut unique_type_id);
@@ -590,11 +586,9 @@ fn subroutine_type_metadata<'a, 'tcx>(cx: &CrateContext<'a, 'tcx>,
     let mut signature_metadata: Vec<DIType> = Vec::with_capacity(signature.inputs.len() + 1);
 
     // return type
-    signature_metadata.push(match signature.output {
-        ty::FnConverging(ret_ty) => match ret_ty.sty {
-            ty::TyTuple(ref tys) if tys.is_empty() => ptr::null_mut(),
-            _ => type_metadata(cx, ret_ty, span)
-        },
+    signature_metadata.push(match signature.output.sty {
+        ty::TyTuple(ref tys) if tys.is_empty() => ptr::null_mut(),
+        _ => type_metadata(cx, signature.output, span),
     });
 
     // regular arguments

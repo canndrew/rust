@@ -173,7 +173,7 @@ pub fn get_extern_fn(ccx: &CrateContext,
         Some(n) => return *n,
         None => {}
     }
-    let f = declare::declare_fn(ccx, name, cc, ty, ty::FnConverging(output));
+    let f = declare::declare_fn(ccx, name, cc, ty, output);
     externs.insert(name.to_string(), f);
     f
 }
@@ -407,11 +407,7 @@ pub fn trans_native_call<'blk, 'tcx>(bcx: Block<'blk, 'tcx>,
         debug!("llforeign_ret_ty={}", ccx.tn().type_to_string(llforeign_ret_ty));
 
         if llrust_ret_ty == llforeign_ret_ty {
-            match fn_sig.output {
-                ty::FnConverging(result_ty) => {
-                    base::store_ty(bcx, llforeign_retval, llretptr, result_ty)
-                }
-            }
+            base::store_ty(bcx, llforeign_retval, llretptr, fn_sig.output)
         } else {
             // The actual return type is a struct, but the ABI
             // adaptation code has cast it into some scalar type.  The
@@ -462,7 +458,7 @@ fn gate_simd_ffi(tcx: &ty::ctxt, decl: &ast::FnDecl, ty: &ty::BareFnTy) {
             check(&*input.ty, *ty)
         }
         if let ast::Return(ref ty) = decl.output {
-            check(&**ty, sig.output.unwrap())
+            check(&**ty, sig.output)
         }
     }
 }
@@ -535,8 +531,7 @@ pub fn decl_rust_fn_with_foreign_abi<'a, 'tcx>(ccx: &CrateContext<'a, 'tcx>,
         }
         _ => panic!("expected bare fn in decl_rust_fn_with_foreign_abi")
     };
-    let llfn = declare::declare_fn(ccx, name, cconv, llfn_ty,
-                                   ty::FnConverging(ccx.tcx().mk_nil()));
+    let llfn = declare::declare_fn(ccx, name, cconv, llfn_ty, ccx.tcx().mk_nil());
     add_argument_attributes(&tys, llfn);
     debug!("decl_rust_fn_with_foreign_abi(llfn_ty={}, llfn={})",
            ccx.tn().type_to_string(llfn_ty), ccx.tn().val_to_string(llfn));
@@ -691,9 +686,7 @@ pub fn trans_rust_fn_with_foreign_abi<'a, 'tcx>(ccx: &CrateContext<'a, 'tcx>,
         let rustfn_ty = Type::from_ref(llvm::LLVMTypeOf(llrustfn)).element_type();
         let mut rust_param_tys = rustfn_ty.func_params().into_iter();
         // Push Rust return pointer, using null if it will be unused.
-        let rust_uses_outptr = match tys.fn_sig.output {
-            ty::FnConverging(ret_ty) => type_of::return_uses_outptr(ccx, ret_ty),
-        };
+        let rust_uses_outptr = type_of::return_uses_outptr(ccx, tys.fn_sig.output);
         let return_alloca: Option<ValueRef>;
         let llrust_ret_ty = if rust_uses_outptr {
             rust_param_tys.next().expect("Missing return type!").element_type()
@@ -913,10 +906,8 @@ fn foreign_signature<'a, 'tcx>(ccx: &CrateContext<'a, 'tcx>,
                                arg_tys: &[Ty<'tcx>])
                                -> LlvmSignature {
     let llarg_tys = arg_tys.iter().map(|&arg| foreign_arg_type_of(ccx, arg)).collect();
-    let (llret_ty, ret_def) = match fn_sig.output {
-        ty::FnConverging(ret_ty) =>
-            (type_of::foreign_arg_type_of(ccx, ret_ty), !return_type_is_void(ccx, ret_ty)),
-    };
+    let llret_ty  = type_of::foreign_arg_type_of(ccx, fn_sig.output);
+    let ret_def   = !return_type_is_void(ccx, fn_sig.output);
     LlvmSignature {
         llarg_tys: llarg_tys,
         llret_ty: llret_ty,
