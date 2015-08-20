@@ -988,7 +988,7 @@ impl LintPass for UnusedResults {
         let t = cx.tcx.expr_ty(expr);
         let warned = match t.sty {
             ty::TyTuple(ref tys) if tys.is_empty() => return,
-            ty::TyBool => return,
+            ty::TyBool | ty::TyEmpty => return,
             ty::TyStruct(def, _) |
             ty::TyEnum(def, _) => {
                 if ast_util::is_local(def.did) {
