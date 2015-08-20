@@ -267,7 +267,7 @@ fn confirm_builtin_call<'a,'tcx>(fcx: &FnCtxt<'a,'tcx>,
                          fn_sig.variadic,
                          TupleArgumentsFlag::DontTupleArguments);
 
-    fcx.write_expr_ty(call_expr, fn_sig.output);
+    fcx.write_expr_ty(call_expr.id, fn_sig.output);
 }
 
 fn confirm_deferred_closure_call<'a,'tcx>(fcx: &FnCtxt<'a,'tcx>,
@@ -296,7 +296,7 @@ fn confirm_deferred_closure_call<'a,'tcx>(fcx: &FnCtxt<'a,'tcx>,
                          fn_sig.variadic,
                          TupleArgumentsFlag::TupleArguments);
 
-    fcx.write_expr_ty(call_expr, fn_sig.output);
+    fcx.write_expr_ty(call_expr.id, fn_sig.output);
 }
 
 fn confirm_overloaded_call<'a,'tcx>(fcx: &FnCtxt<'a, 'tcx>,
@@ -314,7 +314,7 @@ fn confirm_overloaded_call<'a,'tcx>(fcx: &FnCtxt<'a, 'tcx>,
                                     arg_exprs,
                                     TupleArgumentsFlag::TupleArguments,
                                     expected);
-    fcx.write_expr_ty(call_expr, output_type);
+    fcx.write_expr_ty(call_expr.id, output_type);
 
     write_overloaded_call_method_map(fcx, call_expr, method_callee);
 }

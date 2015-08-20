@@ -2791,7 +2791,7 @@ fn check_expr_with_unifier<'a, 'tcx, F>(fcx: &FnCtxt<'a, 'tcx>,
                                                  DontTupleArguments,
                                                  expected);
 
-        fcx.write_expr_ty(expr, ret_ty);
+        fcx.write_expr_ty(expr.id, ret_ty);
     }
 
     // A generic function for checking the then and else in an if
