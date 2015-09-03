@@ -3336,8 +3336,8 @@ impl<'tcx, 'container> AdtDefData<'tcx, 'container> {
     }
 
     #[inline]
-    pub fn is_empty(&self) -> bool {
-        self.variants.is_empty()
+    pub fn is_empty(&self, tcx: &ctxt) -> bool {
+        self.variants.iter().all(|v| v.is_empty(tcx))
     }
 
     #[inline]
@@ -3382,6 +3382,10 @@ impl<'tcx, 'container> VariantDefData<'tcx, 'container> {
         }
     }
 
+    pub fn is_empty(&self, tcx: &ctxt) -> bool {
+        self.fields.iter().any(|f| f.is_empty(tcx))
+    }
+
     pub fn is_tuple_struct(&self) -> bool {
         self.kind() == VariantKind::Tuple
     }
@@ -3421,6 +3425,10 @@ impl<'tcx, 'container> FieldDefData<'tcx, 'container> {
 
     pub fn fulfill_ty(&self, ty: Ty<'container>) {
         self.ty.fulfill(ty);
+    }
+
+    pub fn is_empty(&self, tcx: &ctxt) -> bool {
+        self.ty.get().map(|t| t.is_empty(tcx)).unwrap_or(false)
     }
 }
 
@@ -4178,7 +4186,7 @@ impl<'tcx> TyS<'tcx> {
     pub fn is_empty(&self, _cx: &ctxt) -> bool {
         // FIXME(#24885): be smarter here
         match self.sty {
-            TyEnum(def, _) | TyStruct(def, _) => def.is_empty(),
+            TyEnum(def, _) | TyStruct(def, _) => def.is_empty(_cx),
             TyTuple(ref v)  => v.iter().any(|t| t.is_empty(_cx)),
             TyEmpty         => true,
             _               => false
