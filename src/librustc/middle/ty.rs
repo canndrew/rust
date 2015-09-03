@@ -4720,7 +4720,7 @@ impl<'tcx> TyS<'tcx> {
                     if seen.contains(&def) {
                         // FIXME(#27497) ???
                         false
-                    } else if def.is_empty() {
+                    } else if def.is_empty(cx) {
                         // HACK: required for empty types to work. This
                         // check is basically a lint anyway.
                         false
