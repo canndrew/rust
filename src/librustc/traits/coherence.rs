@@ -262,6 +262,7 @@ fn ty_is_local_constructor<'tcx>(tcx: &TyCtxt<'tcx>,
         ty::TySlice(..) |
         ty::TyRawPtr(..) |
         ty::TyRef(..) |
+        ty::TyEmpty |
         ty::TyTuple(..) |
         ty::TyParam(..) |
         ty::TyProjection(..) => {

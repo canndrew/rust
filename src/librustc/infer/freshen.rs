@@ -166,6 +166,7 @@ impl<'a, 'tcx> TypeFolder<'tcx> for TypeFreshener<'a, 'tcx> {
             ty::TyTrait(..) |
             ty::TyStruct(..) |
             ty::TyClosure(..) |
+            ty::TyEmpty |
             ty::TyTuple(..) |
             ty::TyProjection(..) |
             ty::TyParam(..) => {

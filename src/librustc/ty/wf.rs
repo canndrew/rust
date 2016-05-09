@@ -323,6 +323,7 @@ impl<'a,'tcx> WfPredicates<'a,'tcx> {
                 ty::TyFloat(..) |
                 ty::TyError |
                 ty::TyStr |
+                ty::TyEmpty |
                 ty::TyParam(_) => {
                     // WfScalar, WfParameter, etc
                 }

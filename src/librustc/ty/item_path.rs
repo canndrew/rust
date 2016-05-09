@@ -315,6 +315,7 @@ pub fn characteristic_def_id_of_type<'tcx>(ty: Ty<'tcx>) -> Option<DefId> {
         ty::TyParam(_) |
         ty::TyInfer(_) |
         ty::TyError |
+        ty::TyEmpty |
         ty::TyFloat(_) => None,
     }
 }

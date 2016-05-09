@@ -467,6 +467,7 @@ impl<'tcx> TyCtxt<'tcx> {
                         did(state, data.trait_ref.def_id);
                         hash!(data.item_name.as_str());
                     }
+                    TyEmpty => byte!(24),
                 }
                 true
             });
@@ -536,7 +537,7 @@ impl<'tcx> ty::TyS<'tcx> {
 
         // Fast-path for primitive types
         let result = match self.sty {
-            TyBool | TyChar | TyInt(..) | TyUint(..) | TyFloat(..) |
+            TyBool | TyChar | TyInt(..) | TyUint(..) | TyFloat(..) | TyEmpty |
             TyRawPtr(..) | TyFnDef(..) | TyFnPtr(_) | TyRef(_, TypeAndMut {
                 mutbl: hir::MutImmutable, ..
             }) => Some(false),
@@ -580,7 +581,7 @@ impl<'tcx> ty::TyS<'tcx> {
         let result = match self.sty {
             TyBool | TyChar | TyInt(..) | TyUint(..) | TyFloat(..) |
             TyBox(..) | TyRawPtr(..) | TyRef(..) | TyFnDef(..) | TyFnPtr(_) |
-            TyArray(..) | TyTuple(..) | TyClosure(..) => Some(true),
+            TyArray(..) | TyTuple(..) | TyClosure(..) | TyEmpty => Some(true),
 
             TyStr | TyTrait(..) | TySlice(_) => Some(false),
 

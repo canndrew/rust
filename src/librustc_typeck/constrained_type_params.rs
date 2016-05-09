@@ -75,7 +75,8 @@ fn parameters_for_type_shallow<'tcx>(ty: Ty<'tcx>) -> Vec<Parameter> {
         ty::TyArray(..) | ty::TySlice(..) |
         ty::TyFnDef(..) | ty::TyFnPtr(_) |
         ty::TyTuple(..) | ty::TyRawPtr(..) |
-        ty::TyInfer(..) | ty::TyClosure(..) | ty::TyError =>
+        ty::TyInfer(..) | ty::TyClosure(..) |
+        ty::TyEmpty | ty::TyError =>
             vec![]
     }
 }

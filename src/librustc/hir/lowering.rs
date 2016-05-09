@@ -237,6 +237,7 @@ pub fn lower_ty(lctx: &LoweringContext, t: &Ty) -> P<hir::Ty> {
                     decl: lower_fn_decl(lctx, &f.decl),
                 }))
             }
+            Empty => hir::TyEmpty,
             Tup(ref tys) => hir::TyTup(tys.iter().map(|ty| lower_ty(lctx, ty)).collect()),
             Paren(ref ty) => {
                 return lower_ty(lctx, ty);

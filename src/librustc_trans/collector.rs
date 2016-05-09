@@ -732,6 +732,7 @@ fn find_drop_glue_neighbors<'a, 'tcx>(ccx: &CrateContext<'a, 'tcx>,
         ty::TyFnDef(..) |
         ty::TyFnPtr(_)  |
         ty::TySlice(_)  |
+        ty::TyEmpty     |
         ty::TyTrait(_)  => {
             /* nothing to do */
         }
@@ -1236,6 +1237,7 @@ pub fn push_unique_type_name<'a, 'tcx>(cx: &CrateContext<'a, 'tcx>,
         ty::TyBool              => output.push_str("bool"),
         ty::TyChar              => output.push_str("char"),
         ty::TyStr               => output.push_str("str"),
+        ty::TyEmpty             => output.push_str("!"),
         ty::TyInt(ast::IntTy::Is)    => output.push_str("isize"),
         ty::TyInt(ast::IntTy::I8)    => output.push_str("i8"),
         ty::TyInt(ast::IntTy::I16)   => output.push_str("i16"),

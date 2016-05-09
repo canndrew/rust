@@ -94,6 +94,7 @@ pub struct CommonTypes<'tcx> {
     pub u64: Ty<'tcx>,
     pub f32: Ty<'tcx>,
     pub f64: Ty<'tcx>,
+    pub empty: Ty<'tcx>,
     pub err: Ty<'tcx>,
 }
 
@@ -197,6 +198,7 @@ impl<'tcx> CommonTypes<'tcx> {
         CommonTypes {
             bool: mk(TyBool),
             char: mk(TyChar),
+            empty: mk(TyEmpty),
             err: mk(TyError),
             isize: mk(TyInt(ast::IntTy::Is)),
             i8: mk(TyInt(ast::IntTy::I8)),
@@ -746,7 +748,7 @@ macro_rules! sty_debug_print {
                 for (_, t) in tcx.interner.borrow().iter() {
                     let variant = match t.sty {
                         ty::TyBool | ty::TyChar | ty::TyInt(..) | ty::TyUint(..) |
-                            ty::TyFloat(..) | ty::TyStr => continue,
+                            ty::TyFloat(..) | ty::TyStr | ty::TyEmpty => continue,
                         ty::TyError => /* unimportant */ continue,
                         $(ty::$variant(..) => &mut $variant,)*
                     };
@@ -984,6 +986,10 @@ impl<'tcx> TyCtxt<'tcx> {
 
     pub fn mk_slice(&self, ty: Ty<'tcx>) -> Ty<'tcx> {
         self.mk_ty(TySlice(ty))
+    }
+
+    pub fn mk_empty(&self) -> Ty<'tcx> {
+        self.mk_ty(TyEmpty)
     }
 
     pub fn mk_tup(&self, ts: Vec<Ty<'tcx>>) -> Ty<'tcx> {

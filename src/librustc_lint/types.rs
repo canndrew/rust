@@ -513,7 +513,7 @@ impl<'a, 'tcx> ImproperCTypesVisitor<'a, 'tcx> {
 
             // Primitive types with a stable representation.
             ty::TyBool | ty::TyInt(..) | ty::TyUint(..) |
-            ty::TyFloat(..) => FfiSafe,
+            ty::TyFloat(..) | ty::TyEmpty => FfiSafe,
 
             ty::TyBox(..) => {
                 FfiUnsafe("found Rust type Box<_> in foreign module, \

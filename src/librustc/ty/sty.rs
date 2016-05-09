@@ -143,6 +143,9 @@ pub enum TypeVariants<'tcx> {
     /// `|a| a`.
     TyClosure(DefId, Box<ClosureSubsts<'tcx>>),
 
+    /// The empty type `!`
+    TyEmpty,
+
     /// A tuple type.  For example, `(i32, bool)`.
     TyTuple(Vec<Ty<'tcx>>),
 
@@ -1228,6 +1231,7 @@ impl<'tcx> TyS<'tcx> {
             TyArray(_, _) |
             TySlice(_) |
             TyRawPtr(_) |
+            TyEmpty |
             TyTuple(_) |
             TyParam(_) |
             TyInfer(_) |

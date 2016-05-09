@@ -1844,7 +1844,7 @@ impl<'tcx> AdtDefData<'tcx, 'tcx> {
         let result = match ty.sty {
             TyBool | TyChar | TyInt(..) | TyUint(..) | TyFloat(..) |
             TyBox(..) | TyRawPtr(..) | TyRef(..) | TyFnDef(..) | TyFnPtr(_) |
-            TyArray(..) | TyClosure(..) => {
+            TyArray(..) | TyClosure(..) | TyEmpty => {
                 vec![]
             }
 

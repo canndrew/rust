@@ -1651,7 +1651,7 @@ impl<'cx, 'tcx> SelectionContext<'cx, 'tcx> {
             ty::TyUint(_) | ty::TyInt(_) | ty::TyBool | ty::TyFloat(_) |
             ty::TyFnDef(..) | ty::TyFnPtr(_) | ty::TyRawPtr(..) |
             ty::TyChar | ty::TyBox(_) | ty::TyRef(..) |
-            ty::TyArray(..) | ty::TyClosure(..) |
+            ty::TyArray(..) | ty::TyClosure(..) | ty::TyEmpty |
             ty::TyError => {
                 // safe for everything
                 Where(ty::Binder(Vec::new()))
@@ -1699,7 +1699,7 @@ impl<'cx, 'tcx> SelectionContext<'cx, 'tcx> {
             ty::TyInfer(ty::IntVar(_)) | ty::TyInfer(ty::FloatVar(_)) |
             ty::TyUint(_) | ty::TyInt(_) | ty::TyBool | ty::TyFloat(_) |
             ty::TyFnDef(..) | ty::TyFnPtr(_) | ty::TyChar |
-            ty::TyRawPtr(..) | ty::TyError |
+            ty::TyRawPtr(..) | ty::TyError | ty::TyEmpty |
             ty::TyRef(_, ty::TypeAndMut { ty: _, mutbl: hir::MutImmutable }) => {
                 Where(ty::Binder(Vec::new()))
             }
@@ -1764,6 +1764,7 @@ impl<'cx, 'tcx> SelectionContext<'cx, 'tcx> {
             ty::TyError |
             ty::TyInfer(ty::IntVar(_)) |
             ty::TyInfer(ty::FloatVar(_)) |
+            ty::TyEmpty |
             ty::TyChar => {
                 Vec::new()
             }
