@@ -464,7 +464,13 @@ pub enum FnOutput<'tcx> {
 
 impl<'tcx> FnOutput<'tcx> {
     pub fn diverges(&self) -> bool {
-        *self == FnDiverging
+        match *self {
+            FnConverging(ref output) => match output.sty {
+                TypeVariants::TyEmpty => true,
+                _ => false,
+            },
+            FnDiverging => true,
+        }
     }
 
     pub fn unwrap(self) -> Ty<'tcx> {

@@ -95,7 +95,7 @@ use rustc::traits::{self, report_fulfillment_errors, ProjectionMode};
 use rustc::ty::{GenericPredicates, TypeScheme};
 use rustc::ty::{ParamTy, ParameterEnvironment};
 use rustc::ty::{LvaluePreference, NoPreference, PreferMutLvalue};
-use rustc::ty::{self, ToPolyTraitRef, Ty, TyCtxt, Visibility};
+use rustc::ty::{self, ToPolyTraitRef, Ty, TypeVariants, TyCtxt, Visibility};
 use rustc::ty::{MethodCall, MethodCallee};
 use rustc::ty::adjustment;
 use rustc::ty::error::TypeError;
@@ -1269,6 +1269,16 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
     }
 
     #[inline]
+    pub fn write_expr(&self,
+                      node_id: ast::NodeId,
+                      ty: Ty<'tcx>) {
+        self.write_ty(node_id, match ty.sty {
+            TypeVariants::TyEmpty => self.infcx().next_diverging_ty_var(),
+            _ => ty,
+        });
+    }
+
+    #[inline]
     pub fn write_ty(&self, node_id: ast::NodeId, ty: Ty<'tcx>) {
         debug!("write_ty({}, {:?}) in fcx {}",
                node_id, ty, self.tag());
@@ -1725,7 +1735,7 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
             if self.infcx().type_var_diverges(resolved) {
                 debug!("default_type_parameters: defaulting `{:?}` to `()` because it diverges",
                        resolved);
-                demand::eqtype(self, codemap::DUMMY_SP, *ty, self.tcx().mk_nil());
+                demand::eqtype(self, codemap::DUMMY_SP, *ty, self.tcx().mk_empty());
             } else {
                 match self.infcx().type_is_unconstrained_numeric(resolved) {
                     UnconstrainedInt => {
@@ -1799,7 +1809,7 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
             for ty in &unsolved_variables {
                 let resolved = self.infcx().resolve_type_vars_if_possible(ty);
                 if self.infcx().type_var_diverges(resolved) {
-                    demand::eqtype(self, codemap::DUMMY_SP, *ty, self.tcx().mk_nil());
+                    demand::eqtype(self, codemap::DUMMY_SP, *ty, self.tcx().mk_empty());
                 } else {
                     match self.infcx().type_is_unconstrained_numeric(resolved) {
                         UnconstrainedInt | UnconstrainedFloat => {
@@ -1856,7 +1866,7 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
             let _ = self.infcx().commit_if_ok(|_: &infer::CombinedSnapshot| {
                 for ty in &unbound_tyvars {
                     if self.infcx().type_var_diverges(ty) {
-                        demand::eqtype(self, codemap::DUMMY_SP, *ty, self.tcx().mk_nil());
+                        demand::eqtype(self, codemap::DUMMY_SP, *ty, self.tcx().mk_empty());
                     } else {
                         match self.infcx().type_is_unconstrained_numeric(ty) {
                             UnconstrainedInt => {
@@ -1952,7 +1962,7 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
         // reporting for more then one conflict.
         for ty in &unbound_tyvars {
             if self.infcx().type_var_diverges(ty) {
-                demand::eqtype(self, codemap::DUMMY_SP, *ty, self.tcx().mk_nil());
+                demand::eqtype(self, codemap::DUMMY_SP, *ty, self.tcx().mk_empty());
             } else {
                 match self.infcx().type_is_unconstrained_numeric(ty) {
                     UnconstrainedInt => {
@@ -2579,7 +2589,7 @@ fn err_args<'tcx>(tcx: &TyCtxt<'tcx>, len: usize) -> Vec<Ty<'tcx>> {
 fn write_call<'a, 'tcx>(fcx: &FnCtxt<'a, 'tcx>,
                         call_expr: &hir::Expr,
                         output: ty::FnOutput<'tcx>) {
-    fcx.write_ty(call_expr.id, match output {
+    fcx.write_expr(call_expr.id, match output {
         ty::FnConverging(output_ty) => output_ty,
         ty::FnDiverging => fcx.infcx().next_diverging_ty_var()
     });
@@ -2905,7 +2915,7 @@ fn check_expr_with_expectation_and_lvalue_pref<'a, 'tcx>(fcx: &FnCtxt<'a, 'tcx>,
             }
         };
 
-        fcx.write_ty(id, if_ty);
+        fcx.write_expr(id, if_ty);
     }
 
     // Check field access expressions
@@ -2938,7 +2948,7 @@ fn check_expr_with_expectation_and_lvalue_pref<'a, 'tcx>(fcx: &FnCtxt<'a, 'tcx>,
             });
         match field_ty {
             Some(field_ty) => {
-                fcx.write_ty(expr.id, field_ty);
+                fcx.write_expr(expr.id, field_ty);
                 fcx.write_autoderef_adjustment(base.id, autoderefs);
                 return;
             }
@@ -2949,7 +2959,7 @@ fn check_expr_with_expectation_and_lvalue_pref<'a, 'tcx>(fcx: &FnCtxt<'a, 'tcx>,
             let struct_path = fcx.tcx().item_path_str(did);
             let msg = format!("field `{}` of struct `{}` is private", field.node, struct_path);
             fcx.tcx().sess.span_err(expr.span, &msg);
-            fcx.write_ty(expr.id, field_ty);
+            fcx.write_expr(expr.id, field_ty);
         } else if field.node == keywords::Invalid.name() {
             fcx.write_error(expr.id);
         } else if method::exists(fcx, field.span, field.node, expr_t, expr.id) {
@@ -3049,7 +3059,7 @@ fn check_expr_with_expectation_and_lvalue_pref<'a, 'tcx>(fcx: &FnCtxt<'a, 'tcx>,
             });
         match field_ty {
             Some(field_ty) => {
-                fcx.write_ty(expr.id, field_ty);
+                fcx.write_expr(expr.id, field_ty);
                 fcx.write_autoderef_adjustment(base.id, autoderefs);
                 return;
             }
@@ -3060,7 +3070,7 @@ fn check_expr_with_expectation_and_lvalue_pref<'a, 'tcx>(fcx: &FnCtxt<'a, 'tcx>,
             let struct_path = fcx.tcx().item_path_str(did);
             let msg = format!("field `{}` of struct `{}` is private", idx.node, struct_path);
             fcx.tcx().sess.span_err(expr.span, &msg);
-            fcx.write_ty(expr.id, field_ty);
+            fcx.write_expr(expr.id, field_ty);
             return;
         }
 
@@ -3317,7 +3327,7 @@ fn check_expr_with_expectation_and_lvalue_pref<'a, 'tcx>(fcx: &FnCtxt<'a, 'tcx>,
                 }
             }
         }
-        fcx.write_ty(id, oprnd_t);
+        fcx.write_expr(id, oprnd_t);
       }
       hir::ExprAddrOf(mutbl, ref oprnd) => {
         let hint = expected.only_has_type(fcx).map_or(NoExpectation, |ty| {
@@ -3394,7 +3404,8 @@ fn check_expr_with_expectation_and_lvalue_pref<'a, 'tcx>(fcx: &FnCtxt<'a, 'tcx>,
                                    opt_ty,
                                    def,
                                    expr.span,
-                                   id);
+                                   id,
+                                   true);
               } else {
                   fcx.infcx().set_tainted_by_errors();
                   fcx.write_ty(id, fcx.tcx().types.err);
@@ -3497,7 +3508,7 @@ fn check_expr_with_expectation_and_lvalue_pref<'a, 'tcx>(fcx: &FnCtxt<'a, 'tcx>,
       }
       hir::ExprBlock(ref b) => {
         check_block_with_expected(fcx, &b, expected);
-        fcx.write_ty(id, fcx.node_ty(b.id));
+        fcx.write_expr(id, fcx.node_ty(b.id));
       }
       hir::ExprCall(ref callee, ref args) => {
           callee::check_call(fcx, expr, &callee, &args[..], expected);
@@ -3533,7 +3544,7 @@ fn check_expr_with_expectation_and_lvalue_pref<'a, 'tcx>(fcx: &FnCtxt<'a, 'tcx>,
         } else {
             // Write a type for the whole expression, assuming everything is going
             // to work out Ok.
-            fcx.write_ty(id, t_cast);
+            fcx.write_expr(id, t_cast);
 
             // Defer other checks until we're done type checking.
             let mut deferred_cast_checks = fcx.inh.deferred_cast_checks.borrow_mut();
@@ -3550,7 +3561,7 @@ fn check_expr_with_expectation_and_lvalue_pref<'a, 'tcx>(fcx: &FnCtxt<'a, 'tcx>,
       hir::ExprType(ref e, ref t) => {
         let typ = fcx.to_ty(&t);
         check_expr_eq_type(fcx, &e, typ);
-        fcx.write_ty(id, typ);
+        fcx.write_expr(id, typ);
       }
       hir::ExprVec(ref args) => {
         let uty = expected.to_option(fcx).and_then(|uty| {
@@ -3687,7 +3698,7 @@ fn check_expr_with_expectation_and_lvalue_pref<'a, 'tcx>(fcx: &FnCtxt<'a, 'tcx>,
                   Some((index_ty, element_ty)) => {
                       let idx_expr_ty = fcx.expr_ty(idx);
                       demand::eqtype(fcx, expr.span, index_ty, idx_expr_ty);
-                      fcx.write_ty(id, element_ty);
+                      fcx.write_expr(id, element_ty);
                   }
                   None => {
                       check_expr_has_type(fcx, &idx, fcx.tcx().types.err);
@@ -4011,7 +4022,7 @@ fn check_block_with_expected<'a, 'tcx>(fcx: &FnCtxt<'a, 'tcx>,
             } else if any_diverges {
                 fcx.write_ty(blk.id, fcx.infcx().next_diverging_ty_var());
             } else {
-                fcx.write_ty(blk.id, ety);
+                fcx.write_expr(blk.id, ety);
             }
         }
     };
@@ -4219,7 +4230,8 @@ pub fn instantiate_path<'a, 'tcx>(fcx: &FnCtxt<'a, 'tcx>,
                                   opt_self_ty: Option<Ty<'tcx>>,
                                   def: Def,
                                   span: Span,
-                                  node_id: ast::NodeId) {
+                                  node_id: ast::NodeId,
+                                  is_expr: bool) {
     debug!("instantiate_path(path={:?}, def={:?}, node_id={}, type_scheme={:?})",
            segments,
            def,
@@ -4480,7 +4492,12 @@ pub fn instantiate_path<'a, 'tcx>(fcx: &FnCtxt<'a, 'tcx>,
     debug!("instantiate_path: type of {:?} is {:?}",
            node_id,
            ty_substituted);
-    fcx.write_ty(node_id, ty_substituted);
+    if is_expr {
+        fcx.write_expr(node_id, ty_substituted);
+    }
+    else {
+        fcx.write_ty(node_id, ty_substituted);
+    }
     fcx.write_substs(node_id, ty::ItemSubsts { substs: substs });
     return;
 

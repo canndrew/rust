@@ -234,7 +234,7 @@ pub fn check_pat<'a, 'tcx>(pcx: &pat_ctxt<'a, 'tcx>,
                     let predicates = tcx.lookup_predicates(def.def_id());
                     instantiate_path(fcx, segments,
                                      scheme, &predicates,
-                                     opt_ty, def, pat.span, pat.id);
+                                     opt_ty, def, pat.span, pat.id, false);
                     let const_ty = fcx.node_ty(pat.id);
                     demand::suptype(fcx, pat.span, expected, const_ty);
                 } else {
@@ -674,7 +674,7 @@ fn check_pat_enum<'a, 'tcx>(pcx: &pat_ctxt<'a, 'tcx>,
     };
     instantiate_path(pcx.fcx, segments,
                      path_scheme, &ctor_predicates,
-                     opt_ty, def, pat.span, pat.id);
+                     opt_ty, def, pat.span, pat.id, false);
 
     let report_bad_struct_kind = |is_warning| {
         bad_struct_kind_err(tcx.sess, pat, path, is_warning);

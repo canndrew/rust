@@ -172,6 +172,7 @@ impl<'tcx> TypeMap<'tcx> {
         unique_type_id.push('{');
 
         match type_.sty {
+            ty::TyEmpty    |
             ty::TyBool     |
             ty::TyChar     |
             ty::TyStr      |
@@ -705,6 +706,7 @@ pub fn type_metadata<'a, 'tcx>(cx: &CrateContext<'a, 'tcx>,
 
     let sty = &t.sty;
     let MetadataCreationResult { metadata, already_stored_in_typemap } = match *sty {
+        ty::TyEmpty    |
         ty::TyBool     |
         ty::TyChar     |
         ty::TyInt(_)   |
@@ -933,6 +935,7 @@ fn basic_type_metadata<'a, 'tcx>(cx: &CrateContext<'a, 'tcx>,
     let (name, encoding) = match t.sty {
         ty::TyTuple(ref elements) if elements.is_empty() =>
             ("()", DW_ATE_unsigned),
+        ty::TyEmpty => ("!", DW_ATE_unsigned),
         ty::TyBool => ("bool", DW_ATE_boolean),
         ty::TyChar => ("char", DW_ATE_unsigned_char),
         ty::TyInt(int_ty) => {
