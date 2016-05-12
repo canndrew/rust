@@ -499,7 +499,7 @@ impl fmt::Display for clean::Type {
                 primitive_link(f, clean::PrimitiveType::Array,
                                &format!("; {}]", Escape(s)))
             }
-            clean::Bottom => f.write_str("!"),
+            clean::Empty => f.write_str("!"),
             clean::RawPointer(m, ref t) => {
                 match **t {
                     clean::Generic(_) | clean::ResolvedPath {is_generic: true, ..} => {
