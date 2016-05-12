@@ -301,7 +301,7 @@ impl<'a,'tcx> TyDecoder<'a,'tcx> {
         let tcx = self.tcx;
         match self.next() {
             'b' => return tcx.types.bool,
-            '!' => return tcx.types.empty,
+            'z' => return tcx.types.empty,
             'i' => { /* eat the s of is */ self.next(); return tcx.types.isize },
             'u' => { /* eat the s of us */ self.next(); return tcx.types.usize },
             'M' => {
@@ -526,13 +526,7 @@ impl<'a,'tcx> TyDecoder<'a,'tcx> {
             'N' => false,
             r => bug!("bad variadic: {}", r),
         };
-        let output = match self.peek() {
-            'z' => {
-                self.pos += 1;
-                ty::FnDiverging
-            }
-            _ => ty::FnConverging(self.parse_ty())
-        };
+        let output = ty::FnConverging(self.parse_ty());
         ty::Binder(ty::FnSig {inputs: inputs,
                               output: output,
                               variadic: variadic})

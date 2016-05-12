@@ -259,11 +259,6 @@ impl<'a,'tcx:'a> Relate<'a,'tcx> for ty::FnSig<'tcx> {
         let output = match (a.output, b.output) {
             (ty::FnConverging(a_ty), ty::FnConverging(b_ty)) =>
                 Ok(ty::FnConverging(relation.relate(&a_ty, &b_ty)?)),
-            (ty::FnDiverging, ty::FnDiverging) =>
-                Ok(ty::FnDiverging),
-            (a, b) =>
-                Err(TypeError::ConvergenceMismatch(
-                    expected_found(relation, &(a != ty::FnDiverging), &(b != ty::FnDiverging)))),
         }?;
 
         return Ok(ty::FnSig {inputs: inputs,

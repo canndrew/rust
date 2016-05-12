@@ -182,7 +182,7 @@ impl<'ccx, 'tcx> CheckTypeWellFormedVisitor<'ccx, 'tcx> {
         let param_env = ty::ParameterEnvironment::for_item(ccx.tcx, id);
         let tables = RefCell::new(ty::Tables::empty());
         let inh = Inherited::new(ccx.tcx, &tables, param_env);
-        let fcx = blank_fn_ctxt(ccx, &inh, ty::FnDiverging, id);
+        let fcx = blank_fn_ctxt(ccx, &inh, ty::FnConverging(ccx.tcx.mk_empty()), id);
         let wf_tys = f(&fcx, self);
         fcx.select_all_obligations_or_error();
         regionck::regionck_item(&fcx, id, span, &wf_tys);
@@ -373,7 +373,6 @@ impl<'ccx, 'tcx> CheckTypeWellFormedVisitor<'ccx, 'tcx> {
                 // FIXME(#25759) return types should not be implied bounds
                 implied_bounds.push(output);
             }
-            ty::FnDiverging => { }
         }
 
         self.check_where_clauses(fcx, span, predicates);

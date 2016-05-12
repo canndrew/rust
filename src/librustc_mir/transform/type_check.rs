@@ -85,9 +85,8 @@ impl<'a, 'b, 'tcx> Visitor<'tcx> for TypeVerifier<'a, 'b, 'tcx> {
     }
 
     fn visit_mir(&mut self, mir: &Mir<'tcx>) {
-        if let ty::FnConverging(t) = mir.return_ty {
-            self.sanitize_type(&"return type", t);
-        }
+        let ty::FnConverging(t) = mir.return_ty;
+        self.sanitize_type(&"return type", t);
         for var_decl in &mir.var_decls {
             self.sanitize_type(var_decl, var_decl.ty);
         }
@@ -141,14 +140,8 @@ impl<'a, 'b, 'tcx> TypeVerifier<'a, 'b, 'tcx> {
             Lvalue::Static(def_id) =>
                 LvalueTy::Ty { ty: self.tcx().lookup_item_type(def_id).ty },
             Lvalue::ReturnPointer => {
-                if let ty::FnConverging(return_ty) = self.mir.return_ty {
-                    LvalueTy::Ty { ty: return_ty }
-                } else {
-                    LvalueTy::Ty {
-                        ty: span_mirbug_and_err!(
-                            self, lvalue, "return in diverging function")
-                    }
-                }
+                let ty::FnConverging(return_ty) = self.mir.return_ty;
+                LvalueTy::Ty { ty: return_ty }
             }
             Lvalue::Projection(ref proj) => {
                 let base_ty = self.sanitize_lvalue(&proj.base);
@@ -451,9 +444,6 @@ impl<'a, 'tcx> TypeChecker<'a, 'tcx> {
                        destination: &Option<(Lvalue<'tcx>, BasicBlock)>) {
         let tcx = self.tcx();
         match (destination, sig.output) {
-            (&Some(..), ty::FnDiverging) => {
-                span_mirbug!(self, term, "call to diverging function {:?} with dest", sig);
-            }
             (&Some((ref dest, _)), ty::FnConverging(ty)) => {
                 let dest_ty = mir.lvalue_ty(tcx, dest).to_ty(tcx);
                 if let Err(terr) = self.mk_subty(self.last_span, ty, dest_ty) {
@@ -462,7 +452,6 @@ impl<'a, 'tcx> TypeChecker<'a, 'tcx> {
                                  dest_ty, ty, terr);
                 }
             }
-            (&None, ty::FnDiverging) => {}
             (&None, ty::FnConverging(..)) => {
                 span_mirbug!(self, term, "call to converging function {:?} w/o dest", sig);
              }

@@ -348,11 +348,8 @@ impl<'a,'tcx> Builder<'a,'tcx> {
         }).collect();
 
         // FIXME(#32959): temporary hack for the issue at hand
-        let return_is_unit = if let ty::FnConverging(t) = return_ty {
-            t.is_nil()
-        } else {
-            false
-        };
+        let ty::FnConverging(t) = return_ty;
+        let return_is_unit = t.is_nil();
         // start the first basic block and translate the body
         unpack!(block = self.ast_block(&Lvalue::ReturnPointer, return_is_unit, block, ast_block));
 

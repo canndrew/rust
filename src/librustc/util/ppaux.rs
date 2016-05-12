@@ -55,9 +55,6 @@ fn fn_sig(f: &mut fmt::Formatter,
             }
             Ok(())
         }
-        ty::FnDiverging => {
-            write!(f, " -> !")
-        }
     }
 }
 

@@ -286,9 +286,6 @@ impl<'tcx> TypeMap<'tcx> {
                         let return_type_id = self.get_unique_type_id_as_string(return_type_id);
                         unique_type_id.push_str(&return_type_id[..]);
                     }
-                    ty::FnDiverging => {
-                        unique_type_id.push_str("!");
-                    }
                 }
             },
             ty::TyClosure(_, ref substs) if substs.upvar_tys.is_empty() => {
@@ -603,7 +600,6 @@ fn subroutine_type_metadata<'a, 'tcx>(cx: &CrateContext<'a, 'tcx>,
             ty::TyTuple(ref tys) if tys.is_empty() => ptr::null_mut(),
             _ => type_metadata(cx, ret_ty, span)
         },
-        ty::FnDiverging => diverging_type_metadata(cx)
     });
 
     // regular arguments
@@ -913,17 +909,6 @@ pub fn scope_metadata(fcx: &FunctionContext,
                       "debuginfo: Could not find scope info for node {:?}",
                       node);
         }
-    }
-}
-
-pub fn diverging_type_metadata(cx: &CrateContext) -> DIType {
-    unsafe {
-        llvm::LLVMDIBuilderCreateBasicType(
-            DIB(cx),
-            "!\0".as_ptr() as *const _,
-            bytes_to_bits(0),
-            bytes_to_bits(0),
-            DW_ATE_unsigned)
     }
 }
 

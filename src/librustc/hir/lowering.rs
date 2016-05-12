@@ -405,7 +405,6 @@ pub fn lower_fn_decl(lctx: &LoweringContext, decl: &FnDecl) -> P<hir::FnDecl> {
         output: match decl.output {
             FunctionRetTy::Ty(ref ty) => hir::Return(lower_ty(lctx, ty)),
             FunctionRetTy::Default(span) => hir::DefaultReturn(span),
-            FunctionRetTy::None(span) => hir::NoReturn(span),
         },
         variadic: decl.variadic,
     })

@@ -250,7 +250,6 @@ fn write_mir_intro(tcx: &TyCtxt, src: MirSource, mir: &Mir, w: &mut Write)
         // fn return type.
         match mir.return_ty {
             ty::FnOutput::FnConverging(ty) => write!(w, "{}", ty)?,
-            ty::FnOutput::FnDiverging => write!(w, "!")?,
         }
     } else {
         assert!(mir.arg_decls.is_empty());

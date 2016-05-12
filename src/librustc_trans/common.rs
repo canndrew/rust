@@ -502,7 +502,7 @@ impl<'a, 'tcx> FunctionContext<'a, 'tcx> {
             abi: Abi::C,
             sig: ty::Binder(ty::FnSig {
                 inputs: vec![tcx.mk_mut_ptr(tcx.types.u8)],
-                output: ty::FnDiverging,
+                output: ty::FnConverging(tcx.mk_empty()),
                 variadic: false
             }),
         });

@@ -564,7 +564,6 @@ impl<'a, 'tcx> ImproperCTypesVisitor<'a, 'tcx> {
 
                 let sig = cx.erase_late_bound_regions(&bare_fn.sig);
                 match sig.output {
-                    ty::FnDiverging => {}
                     ty::FnConverging(output) => {
                         if !output.is_nil() {
                             let r = self.check_type_for_ffi(cache, output);

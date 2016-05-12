@@ -498,7 +498,11 @@ impl<'a, 'tcx> MirConstContext<'a, 'tcx> {
                     closure::trans_closure_expr(closure::Dest::Ignore(self.ccx),
                                                 &hir::FnDecl {
                                                     inputs: P::new(),
-                                                    output: hir::NoReturn(DUMMY_SP),
+                                                    output: hir::Return(P(hir::Ty {
+                                                        id: DUMMY_NODE_ID,
+                                                        node: hir::Ty_::TyEmpty,
+                                                        span: DUMMY_SP,
+                                                    })),
                                                     variadic: false
                                                 },
                                                 &hir::Block {

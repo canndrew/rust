@@ -459,7 +459,6 @@ pub struct ClosureTy<'tcx> {
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Debug, RustcEncodable, RustcDecodable)]
 pub enum FnOutput<'tcx> {
     FnConverging(Ty<'tcx>),
-    FnDiverging
 }
 
 impl<'tcx> FnOutput<'tcx> {
@@ -469,21 +468,19 @@ impl<'tcx> FnOutput<'tcx> {
                 TypeVariants::TyEmpty => true,
                 _ => false,
             },
-            FnDiverging => true,
         }
     }
 
     pub fn unwrap(self) -> Ty<'tcx> {
         match self {
             ty::FnConverging(t) => t,
-            ty::FnDiverging => bug!()
         }
     }
 
-    pub fn unwrap_or(self, def: Ty<'tcx>) -> Ty<'tcx> {
+    pub fn unwrap_or(self, _def: Ty<'tcx>) -> Ty<'tcx> {
         match self {
             ty::FnConverging(t) => t,
-            ty::FnDiverging => def
+            //ty::FnDiverging => def
         }
     }
 }

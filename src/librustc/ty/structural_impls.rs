@@ -366,7 +366,6 @@ impl<'tcx> TypeFoldable<'tcx> for ty::FnOutput<'tcx> {
     fn super_fold_with<F: TypeFolder<'tcx>>(&self, folder: &mut F) -> Self {
         match *self {
             ty::FnConverging(ref ty) => ty::FnConverging(ty.fold_with(folder)),
-            ty::FnDiverging => ty::FnDiverging
         }
     }
 
@@ -377,7 +376,6 @@ impl<'tcx> TypeFoldable<'tcx> for ty::FnOutput<'tcx> {
     fn super_visit_with<V: TypeVisitor<'tcx>>(&self, visitor: &mut V) -> bool {
         match *self {
             ty::FnConverging(ref ty) => ty.visit_with(visitor),
-            ty::FnDiverging => false,
         }
     }
 }

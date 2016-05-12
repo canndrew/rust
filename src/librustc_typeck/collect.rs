@@ -2182,8 +2182,6 @@ fn compute_type_scheme_of_foreign_fn_decl<'a, 'tcx>(
             ty::FnConverging(ast_ty_to_ty(&ccx.icx(ast_generics), &rb, &ty)),
         hir::DefaultReturn(..) =>
             ty::FnConverging(ccx.tcx.mk_nil()),
-        hir::NoReturn(..) =>
-            ty::FnDiverging
     };
 
     // feature gate SIMD types in FFI, since I (huonw) am not sure the

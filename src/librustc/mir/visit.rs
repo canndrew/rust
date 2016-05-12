@@ -669,8 +669,6 @@ macro_rules! make_mir_visitor {
                     FnOutput::FnConverging(ref $($mutability)* ty) => {
                         self.visit_ty(ty);
                     }
-                    FnOutput::FnDiverging => {
-                    }
                 }
             }
 

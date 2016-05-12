@@ -1826,7 +1826,6 @@ fn ty_of_method_or_bare_fn<'a, 'tcx>(this: &AstConv<'tcx>,
                                                               implied_output_region,
                                                               &output)),
         hir::DefaultReturn(..) => ty::FnConverging(this.tcx().mk_nil()),
-        hir::NoReturn(..) => ty::FnDiverging
     };
 
     (ty::BareFnTy {
@@ -1975,7 +1974,6 @@ pub fn ty_of_closure<'tcx>(
         hir::Return(ref output) =>
             ty::FnConverging(ast_ty_to_ty(this, &rb, &output)),
         hir::DefaultReturn(..) => bug!(),
-        hir::NoReturn(..) => ty::FnDiverging
     };
 
     debug!("ty_of_closure: input_tys={:?}", input_tys);

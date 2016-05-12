@@ -1012,7 +1012,6 @@ fn constrain_autoderefs<'a, 'tcx>(rcx: &mut Rcx<'a, 'tcx>,
                                           return_type, r_deref_expr);
                         return_type
                     }
-                    ty::FnDiverging => bug!()
                 }
             }
             None => derefd_ty

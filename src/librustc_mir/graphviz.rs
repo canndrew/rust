@@ -133,7 +133,6 @@ fn write_graph_label<W: Write>(tcx: &ty::TyCtxt, nid: NodeId, mir: &Mir, w: &mut
     // fn return type.
     match mir.return_ty {
         ty::FnOutput::FnConverging(ty) => write!(w, "{}", escape(ty))?,
-        ty::FnOutput::FnDiverging => write!(w, "!")?,
     }
 
     write!(w, r#"<br align="left"/>"#)?;

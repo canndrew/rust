@@ -2724,10 +2724,6 @@ impl<'a> State<'a> {
                 self.maybe_print_comment(ty.span.lo)
             }
             ast::FunctionRetTy::Default(..) => unreachable!(),
-            ast::FunctionRetTy::None(span) => {
-                self.word_nbsp("!")?;
-                self.maybe_print_comment(span.lo)
-            }
         }
     }
 
@@ -2985,8 +2981,6 @@ impl<'a> State<'a> {
         self.ibox(INDENT_UNIT)?;
         self.word_space("->")?;
         match decl.output {
-            ast::FunctionRetTy::None(_) =>
-                self.word_nbsp("!")?,
             ast::FunctionRetTy::Default(..) => unreachable!(),
             ast::FunctionRetTy::Ty(ref ty) =>
                 self.print_type(&ty)?

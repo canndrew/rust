@@ -663,7 +663,6 @@ fn trans_call_inner<'a, 'blk, 'tcx>(mut bcx: Block<'blk, 'tcx>,
         expr::Ignore => {
             let needs_drop = || match output {
                 ty::FnConverging(ret_ty) => bcx.fcx.type_needs_drop(ret_ty),
-                ty::FnDiverging => false
             };
             if fn_ty.ret.is_indirect() || fn_ty.ret.cast.is_some() || needs_drop() {
                 // Push the out-pointer if we use an out-pointer for this
@@ -768,7 +767,7 @@ fn trans_call_inner<'a, 'blk, 'tcx>(mut bcx: Block<'blk, 'tcx>,
         _ => {}
     }
 
-    if output == ty::FnDiverging {
+    if output.diverges() {
         Unreachable(bcx);
     }
 

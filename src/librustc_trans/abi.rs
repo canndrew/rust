@@ -289,7 +289,6 @@ impl FnType {
 
         let ret_ty = match sig.output {
             ty::FnConverging(ret_ty) => ret_ty,
-            ty::FnDiverging => ccx.tcx().mk_nil()
         };
         let mut ret = arg_of(ret_ty, true);
 

@@ -1347,9 +1347,6 @@ pub fn push_unique_type_name<'a, 'tcx>(cx: &CrateContext<'a, 'tcx>,
                     output.push_str(" -> ");
                     push_unique_type_name(cx, result_type, output);
                 }
-                ty::FnDiverging => {
-                    output.push_str(" -> !");
-                }
             }
         },
         ty::TyClosure(def_id, ref closure_substs) => {
