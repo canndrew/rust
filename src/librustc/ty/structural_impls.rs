@@ -362,24 +362,6 @@ impl<'tcx> TypeFoldable<'tcx> for ty::TypeAndMut<'tcx> {
     }
 }
 
-impl<'tcx> TypeFoldable<'tcx> for ty::FnOutput<'tcx> {
-    fn super_fold_with<F: TypeFolder<'tcx>>(&self, folder: &mut F) -> Self {
-        match *self {
-            ty::FnConverging(ref ty) => ty::FnConverging(ty.fold_with(folder)),
-        }
-    }
-
-    fn fold_with<F: TypeFolder<'tcx>>(&self, folder: &mut F) -> Self {
-        folder.fold_output(self)
-    }
-
-    fn super_visit_with<V: TypeVisitor<'tcx>>(&self, visitor: &mut V) -> bool {
-        match *self {
-            ty::FnConverging(ref ty) => ty.visit_with(visitor),
-        }
-    }
-}
-
 impl<'tcx> TypeFoldable<'tcx> for ty::FnSig<'tcx> {
     fn super_fold_with<F: TypeFolder<'tcx>>(&self, folder: &mut F) -> Self {
         ty::FnSig { inputs: self.inputs.fold_with(folder),

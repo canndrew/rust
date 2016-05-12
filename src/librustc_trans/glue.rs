@@ -242,7 +242,7 @@ fn get_drop_glue_core<'a, 'tcx>(ccx: &CrateContext<'a, 'tcx>,
     let tcx = ccx.tcx();
     let sig = ty::FnSig {
         inputs: vec![tcx.mk_mut_ptr(tcx.types.i8)],
-        output: ty::FnOutput::FnConverging(tcx.mk_nil()),
+        output: tcx.mk_nil(),
         variadic: false,
     };
     // Create a FnType for fn(*mut i8) and substitute the real type in

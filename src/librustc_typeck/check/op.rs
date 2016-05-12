@@ -341,7 +341,7 @@ fn lookup_op_method<'a, 'tcx>(fcx: &'a FnCtxt<'a, 'tcx>,
             // extract return type for method; all late bound regions
             // should have been instantiated by now
             let ret_ty = method_ty.fn_ret();
-            Ok(fcx.tcx().no_late_bound_regions(&ret_ty).unwrap().unwrap())
+            Ok(fcx.tcx().no_late_bound_regions(&ret_ty).unwrap())
         }
         None => {
             Err(())

@@ -134,7 +134,7 @@ pub fn trans_intrinsic_call<'a, 'blk, 'tcx>(mut bcx: Block<'blk, 'tcx>,
 
     // For `transmute` we can just trans the input expr directly into dest
     if name == "transmute" {
-        let llret_ty = type_of::type_of(ccx, ret_ty.unwrap());
+        let llret_ty = type_of::type_of(ccx, ret_ty);
         match args {
             callee::ArgExprs(arg_exprs) => {
                 assert_eq!(arg_exprs.len(), 1);
@@ -316,10 +316,6 @@ pub fn trans_intrinsic_call<'a, 'blk, 'tcx>(mut bcx: Block<'blk, 'tcx>,
         Unreachable(bcx);
         return Result::new(bcx, C_nil(ccx));
     }
-
-    let ret_ty = match ret_ty {
-        ty::FnConverging(ret_ty) => ret_ty,
-    };
 
     let llret_ty = type_of::type_of(ccx, ret_ty);
 
@@ -1232,7 +1228,7 @@ fn trans_gnu_try<'blk, 'tcx>(bcx: Block<'blk, 'tcx>,
 fn gen_fn<'a, 'tcx>(fcx: &FunctionContext<'a, 'tcx>,
                     name: &str,
                     inputs: Vec<Ty<'tcx>>,
-                    output: ty::FnOutput<'tcx>,
+                    output: Ty<'tcx>,
                     trans: &mut for<'b> FnMut(Block<'b, 'tcx>))
                     -> ValueRef {
     let ccx = fcx.ccx;
@@ -1278,11 +1274,11 @@ fn get_rust_try_fn<'a, 'tcx>(fcx: &FunctionContext<'a, 'tcx>,
         abi: Abi::Rust,
         sig: ty::Binder(ty::FnSig {
             inputs: vec![i8p],
-            output: ty::FnOutput::FnConverging(tcx.mk_nil()),
+            output: tcx.mk_nil(),
             variadic: false,
         }),
     });
-    let output = ty::FnOutput::FnConverging(tcx.types.i32);
+    let output = tcx.types.i32;
     let rust_try = gen_fn(fcx, "__rust_try", vec![fn_ty, i8p, i8p], output, trans);
     ccx.rust_try_fn().set(Some(rust_try));
     return rust_try
@@ -1310,7 +1306,7 @@ fn generate_filter_fn<'a, 'tcx>(fcx: &FunctionContext<'a, 'tcx>,
         None => bug!("msvc_try_filter not defined"),
     };
 
-    let output = ty::FnOutput::FnConverging(tcx.types.i32);
+    let output = tcx.types.i32;
     let i8p = tcx.mk_mut_ptr(tcx.types.i8);
 
     let frameaddress = ccx.get_intrinsic(&"llvm.frameaddress");

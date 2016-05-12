@@ -228,8 +228,7 @@ impl<'tcx> ty::TyS<'tcx> {
         if let Some(method_ty) = method_type(method_call) {
             // Method calls always have all late-bound regions
             // fully instantiated.
-            let fn_ret = cx.no_late_bound_regions(&method_ty.fn_ret()).unwrap();
-            adjusted_ty = fn_ret.unwrap();
+            adjusted_ty = cx.no_late_bound_regions(&method_ty.fn_ret()).unwrap();
         }
         match adjusted_ty.builtin_deref(true, NoPreference) {
             Some(mt) => mt.ty,

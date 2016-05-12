@@ -122,8 +122,7 @@ impl<'bcx, 'tcx> MirContext<'bcx, 'tcx> {
                     }
                 };
                 let fn_return_ty = bcx.monomorphize(&self.mir.return_ty);
-                let return_ty = fn_return_ty.unwrap();
-                LvalueRef::new_sized(llval, LvalueTy::from_ty(return_ty))
+                LvalueRef::new_sized(llval, LvalueTy::from_ty(fn_return_ty))
             },
             mir::Lvalue::Projection(ref projection) => {
                 let tr_base = self.trans_lvalue(bcx, &projection.base);

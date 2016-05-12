@@ -85,8 +85,7 @@ impl<'a, 'b, 'tcx> Visitor<'tcx> for TypeVerifier<'a, 'b, 'tcx> {
     }
 
     fn visit_mir(&mut self, mir: &Mir<'tcx>) {
-        let ty::FnConverging(t) = mir.return_ty;
-        self.sanitize_type(&"return type", t);
+        self.sanitize_type(&"return type", mir.return_ty);
         for var_decl in &mir.var_decls {
             self.sanitize_type(var_decl, var_decl.ty);
         }
@@ -140,8 +139,7 @@ impl<'a, 'b, 'tcx> TypeVerifier<'a, 'b, 'tcx> {
             Lvalue::Static(def_id) =>
                 LvalueTy::Ty { ty: self.tcx().lookup_item_type(def_id).ty },
             Lvalue::ReturnPointer => {
-                let ty::FnConverging(return_ty) = self.mir.return_ty;
-                LvalueTy::Ty { ty: return_ty }
+                LvalueTy::Ty { ty: self.mir.return_ty }
             }
             Lvalue::Projection(ref proj) => {
                 let base_ty = self.sanitize_lvalue(&proj.base);
@@ -444,7 +442,7 @@ impl<'a, 'tcx> TypeChecker<'a, 'tcx> {
                        destination: &Option<(Lvalue<'tcx>, BasicBlock)>) {
         let tcx = self.tcx();
         match (destination, sig.output) {
-            (&Some((ref dest, _)), ty::FnConverging(ty)) => {
+            (&Some((ref dest, _)), ty) => {
                 let dest_ty = mir.lvalue_ty(tcx, dest).to_ty(tcx);
                 if let Err(terr) = self.mk_subty(self.last_span, ty, dest_ty) {
                     span_mirbug!(self, term,
@@ -452,7 +450,7 @@ impl<'a, 'tcx> TypeChecker<'a, 'tcx> {
                                  dest_ty, ty, terr);
                 }
             }
-            (&None, ty::FnConverging(..)) => {
+            (&None, _) => {
                 span_mirbug!(self, term, "call to converging function {:?} w/o dest", sig);
              }
         }

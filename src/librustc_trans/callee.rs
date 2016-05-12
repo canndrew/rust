@@ -661,9 +661,7 @@ fn trans_call_inner<'a, 'blk, 'tcx>(mut bcx: Block<'blk, 'tcx>,
     let opt_llretslot = dest.and_then(|dest| match dest {
         expr::SaveIn(dst) => Some(dst),
         expr::Ignore => {
-            let needs_drop = || match output {
-                ty::FnConverging(ret_ty) => bcx.fcx.type_needs_drop(ret_ty),
-            };
+            let needs_drop = || bcx.fcx.type_needs_drop(output);
             if fn_ty.ret.is_indirect() || fn_ty.ret.cast.is_some() || needs_drop() {
                 // Push the out-pointer if we use an out-pointer for this
                 // return type, otherwise push "undef".
@@ -750,7 +748,7 @@ fn trans_call_inner<'a, 'blk, 'tcx>(mut bcx: Block<'blk, 'tcx>,
             }
             base::call_lifetime_end(bcx, llscratch);
         } else if let Some(llretslot) = opt_llretslot {
-            base::store_ty(bcx, llret, llretslot, output.unwrap());
+            base::store_ty(bcx, llret, llretslot, output);
         }
     }
 
@@ -759,7 +757,7 @@ fn trans_call_inner<'a, 'blk, 'tcx>(mut bcx: Block<'blk, 'tcx>,
     // If the caller doesn't care about the result of this fn call,
     // drop the temporary slot we made.
     match (dest, opt_llretslot, output) {
-        (Some(expr::Ignore), Some(llretslot), ty::FnConverging(ret_ty)) => {
+        (Some(expr::Ignore), Some(llretslot), ret_ty) => {
             // drop the value if it is not being saved.
             bcx = glue::drop_ty(bcx, llretslot, ret_ty, debug_loc);
             call_lifetime_end(bcx, llretslot);
@@ -767,7 +765,7 @@ fn trans_call_inner<'a, 'blk, 'tcx>(mut bcx: Block<'blk, 'tcx>,
         _ => {}
     }
 
-    if output.diverges() {
+    if output.is_empty(bcx.tcx()) {
         Unreachable(bcx);
     }
 

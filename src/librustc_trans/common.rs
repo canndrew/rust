@@ -502,7 +502,7 @@ impl<'a, 'tcx> FunctionContext<'a, 'tcx> {
             abi: Abi::C,
             sig: ty::Binder(ty::FnSig {
                 inputs: vec![tcx.mk_mut_ptr(tcx.types.u8)],
-                output: ty::FnConverging(tcx.mk_empty()),
+                output: tcx.mk_empty(),
                 variadic: false
             }),
         });
@@ -1182,7 +1182,7 @@ pub fn inlined_variant_def<'a, 'tcx>(ccx: &CrateContext<'a, 'tcx>,
            inlined_vid);
     let adt_def = match ctor_ty.sty {
         ty::TyFnDef(_, _, &ty::BareFnTy { sig: ty::Binder(ty::FnSig {
-            output: ty::FnConverging(ty), ..
+            output: ty, ..
         }), ..}) => ty,
         _ => ctor_ty
     }.ty_adt_def().unwrap();

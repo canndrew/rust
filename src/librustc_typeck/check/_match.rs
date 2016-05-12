@@ -666,7 +666,7 @@ fn check_pat_enum<'a, 'tcx>(pcx: &pat_ctxt<'a, 'tcx>,
     let path_scheme = if ctor_scheme.ty.is_fn() {
         let fn_ret = tcx.no_late_bound_regions(&ctor_scheme.ty.fn_ret()).unwrap();
         ty::TypeScheme {
-            ty: fn_ret.unwrap(),
+            ty: fn_ret,
             generics: ctor_scheme.generics,
         }
     } else {

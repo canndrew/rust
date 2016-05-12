@@ -163,7 +163,7 @@ macro_rules! unpack {
 pub fn construct_fn<'a, 'tcx, A>(hir: Cx<'a,'tcx>,
                                  fn_id: ast::NodeId,
                                  arguments: A,
-                                 return_ty: ty::FnOutput<'tcx>,
+                                 return_ty: Ty<'tcx>,
                                  ast_block: &'tcx hir::Block)
                                  -> (Mir<'tcx>, ScopeAuxiliaryVec)
     where A: Iterator<Item=(Ty<'tcx>, Option<&'tcx hir::Pat>)>
@@ -256,7 +256,7 @@ pub fn construct_const<'a, 'tcx>(hir: Cx<'a,'tcx>,
     });
 
     let ty = tcx.expr_ty_adjusted(ast_expr);
-    builder.finish(vec![], vec![], ty::FnConverging(ty))
+    builder.finish(vec![], vec![], ty)
 }
 
 impl<'a,'tcx> Builder<'a,'tcx> {
@@ -285,7 +285,7 @@ impl<'a,'tcx> Builder<'a,'tcx> {
     fn finish(self,
               upvar_decls: Vec<UpvarDecl>,
               arg_decls: Vec<ArgDecl<'tcx>>,
-              return_ty: ty::FnOutput<'tcx>)
+              return_ty: Ty<'tcx>)
               -> (Mir<'tcx>, ScopeAuxiliaryVec) {
         for (index, block) in self.cfg.basic_blocks.iter().enumerate() {
             if block.terminator.is_none() {
@@ -308,7 +308,7 @@ impl<'a,'tcx> Builder<'a,'tcx> {
 
     fn args_and_body<A>(&mut self,
                         mut block: BasicBlock,
-                        return_ty: ty::FnOutput<'tcx>,
+                        return_ty: Ty<'tcx>,
                         arguments: A,
                         argument_scope_id: ScopeId,
                         ast_block: &'tcx hir::Block)
@@ -348,8 +348,7 @@ impl<'a,'tcx> Builder<'a,'tcx> {
         }).collect();
 
         // FIXME(#32959): temporary hack for the issue at hand
-        let ty::FnConverging(t) = return_ty;
-        let return_is_unit = t.is_nil();
+        let return_is_unit = return_ty.is_nil();
         // start the first basic block and translate the body
         unpack!(block = self.ast_block(&Lvalue::ReturnPointer, return_is_unit, block, ast_block));
 

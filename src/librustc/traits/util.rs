@@ -521,5 +521,5 @@ pub fn closure_trait_ref_and_return_type<'tcx>(
         def_id: fn_trait_def_id,
         substs: tcx.mk_substs(trait_substs),
     };
-    ty::Binder((trait_ref, sig.0.output.unwrap_or(tcx.mk_nil())))
+    ty::Binder((trait_ref, sig.0.output))
 }

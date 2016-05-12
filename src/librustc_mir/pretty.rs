@@ -12,7 +12,7 @@ use build::{Location, ScopeAuxiliaryVec};
 use rustc::hir;
 use rustc::mir::repr::*;
 use rustc::mir::transform::MirSource;
-use rustc::ty::{self, TyCtxt};
+use rustc::ty::TyCtxt;
 use rustc_data_structures::fnv::FnvHashMap;
 use std::fmt::Display;
 use std::fs;
@@ -245,15 +245,10 @@ fn write_mir_intro(tcx: &TyCtxt, src: MirSource, mir: &Mir, w: &mut Write)
             write!(w, "{:?}: {}", Lvalue::Arg(i as u32), arg.ty)?;
         }
 
-        write!(w, ") -> ")?;
-
-        // fn return type.
-        match mir.return_ty {
-            ty::FnOutput::FnConverging(ty) => write!(w, "{}", ty)?,
-        }
+        write!(w, ") -> {}", mir.return_ty)?;
     } else {
         assert!(mir.arg_decls.is_empty());
-        write!(w, ": {} =", mir.return_ty.unwrap())?;
+        write!(w, ": {} =", mir.return_ty)?;
     }
 
     writeln!(w, " {{")?;

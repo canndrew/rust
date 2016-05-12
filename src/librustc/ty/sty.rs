@@ -30,7 +30,6 @@ use serialize::{Decodable, Decoder};
 
 use hir;
 
-use self::FnOutput::*;
 use self::InferTy::*;
 use self::TypeVariants::*;
 
@@ -456,43 +455,6 @@ pub struct ClosureTy<'tcx> {
     pub sig: PolyFnSig<'tcx>,
 }
 
-#[derive(Clone, Copy, PartialEq, Eq, Hash, Debug, RustcEncodable, RustcDecodable)]
-pub enum FnOutput<'tcx> {
-    FnConverging(Ty<'tcx>),
-}
-
-impl<'tcx> FnOutput<'tcx> {
-    pub fn diverges(&self) -> bool {
-        match *self {
-            FnConverging(ref output) => match output.sty {
-                TypeVariants::TyEmpty => true,
-                _ => false,
-            },
-        }
-    }
-
-    pub fn unwrap(self) -> Ty<'tcx> {
-        match self {
-            ty::FnConverging(t) => t,
-        }
-    }
-
-    pub fn unwrap_or(self, _def: Ty<'tcx>) -> Ty<'tcx> {
-        match self {
-            ty::FnConverging(t) => t,
-            //ty::FnDiverging => def
-        }
-    }
-}
-
-pub type PolyFnOutput<'tcx> = Binder<FnOutput<'tcx>>;
-
-impl<'tcx> PolyFnOutput<'tcx> {
-    pub fn diverges(&self) -> bool {
-        self.0.diverges()
-    }
-}
-
 /// Signature of a function type, which I have arbitrarily
 /// decided to use to refer to the input/output types.
 ///
@@ -502,7 +464,7 @@ impl<'tcx> PolyFnOutput<'tcx> {
 #[derive(Clone, PartialEq, Eq, Hash)]
 pub struct FnSig<'tcx> {
     pub inputs: Vec<Ty<'tcx>>,
-    pub output: FnOutput<'tcx>,
+    pub output: Ty<'tcx>,
     pub variadic: bool
 }
 
@@ -515,7 +477,7 @@ impl<'tcx> PolyFnSig<'tcx> {
     pub fn input(&self, index: usize) -> ty::Binder<Ty<'tcx>> {
         self.map_bound_ref(|fn_sig| fn_sig.inputs[index])
     }
-    pub fn output(&self) -> ty::Binder<FnOutput<'tcx>> {
+    pub fn output(&self) -> ty::Binder<Ty<'tcx>> {
         self.map_bound_ref(|fn_sig| fn_sig.output.clone())
     }
     pub fn variadic(&self) -> bool {
@@ -908,10 +870,12 @@ impl<'tcx> TyS<'tcx> {
         }
     }
 
-    pub fn is_empty(&self, _cx: &TyCtxt) -> bool {
+    pub fn is_empty(&self, cx: &TyCtxt) -> bool {
         // FIXME(#24885): be smarter here
         match self.sty {
             TyEnum(def, _) | TyStruct(def, _) => def.is_empty(),
+            TyTuple(ref v) => v.iter().any(|t| t.is_empty(cx)),
+            TyEmpty => true,
             _ => false
         }
     }
@@ -1170,7 +1134,7 @@ impl<'tcx> TyS<'tcx> {
         self.fn_sig().inputs()
     }
 
-    pub fn fn_ret(&self) -> Binder<FnOutput<'tcx>> {
+    pub fn fn_ret(&self) -> Binder<Ty<'tcx>> {
         self.fn_sig().output()
     }
 

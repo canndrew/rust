@@ -11,7 +11,7 @@
 use middle::const_val::ConstVal;
 use hir::def_id::DefId;
 use ty::subst::Substs;
-use ty::{ClosureSubsts, FnOutput, Region, Ty};
+use ty::{ClosureSubsts, Region, Ty};
 use mir::repr::*;
 use rustc_const_math::ConstUsize;
 use rustc_data_structures::tuple_slice::TupleSlice;
@@ -37,9 +37,7 @@ use syntax::codemap::Span;
 //
 // For the most part, we do not destructure things external to the
 // MIR, e.g. types, spans, etc, but simply visit them and stop. This
-// avoids duplication with other visitors like `TypeFoldable`. But
-// there is one exception: we do destructure the `FnOutput` to reach
-// the type within. Just because.
+// avoids duplication with other visitors like `TypeFoldable`.
 //
 // ## Updating
 //
@@ -181,11 +179,6 @@ macro_rules! make_mir_visitor {
                 self.super_span(span);
             }
 
-            fn visit_fn_output(&mut self,
-                               fn_output: & $($mutability)* FnOutput<'tcx>) {
-                self.super_fn_output(fn_output);
-            }
-
             fn visit_ty(&mut self,
                         ty: & $($mutability)* Ty<'tcx>) {
                 self.super_ty(ty);
@@ -262,7 +255,7 @@ macro_rules! make_mir_visitor {
                     self.visit_scope_data(scope);
                 }
 
-                self.visit_fn_output(return_ty);
+                self.visit_ty(return_ty);
 
                 for var_decl in var_decls {
                     self.visit_var_decl(var_decl);
@@ -662,14 +655,6 @@ macro_rules! make_mir_visitor {
             }
 
             fn super_span(&mut self, _span: & $($mutability)* Span) {
-            }
-
-            fn super_fn_output(&mut self, fn_output: & $($mutability)* FnOutput<'tcx>) {
-                match *fn_output {
-                    FnOutput::FnConverging(ref $($mutability)* ty) => {
-                        self.visit_ty(ty);
-                    }
-                }
             }
 
             fn super_ty(&mut self, _ty: & $($mutability)* Ty<'tcx>) {

@@ -304,14 +304,13 @@ impl<'a, 'tcx> Rcx<'a, 'tcx> {
         let old_region_bounds_pairs_len = self.region_bound_pairs.len();
 
         // Collect the types from which we create inferred bounds.
-        // For the return type, if diverging, substitute `bool` just
-        // because it will have no effect.
+        // For the return type.
         //
         // FIXME(#27579) return types should not be implied bounds
         let fn_sig_tys: Vec<_> =
             fn_sig.inputs.iter()
                          .cloned()
-                         .chain(Some(fn_sig.output.unwrap_or(self.tcx().types.bool)))
+                         .chain(Some(fn_sig.output))
                          .collect();
 
         let old_body_id = self.set_body_id(body.id);
@@ -732,7 +731,7 @@ fn visit_expr(rcx: &mut Rcx, expr: &hir::Expr) {
                                    None::<hir::Expr>.iter(), true);
                     let fn_ret = // late-bound regions in overloaded method calls are instantiated
                         rcx.tcx().no_late_bound_regions(&method.ty.fn_ret()).unwrap();
-                    fn_ret.unwrap()
+                    fn_ret
                 }
                 None => rcx.resolve_node_type(base.id)
             };
@@ -1006,13 +1005,9 @@ fn constrain_autoderefs<'a, 'tcx>(rcx: &mut Rcx<'a, 'tcx>,
                 // Specialized version of constrain_call.
                 type_must_outlive(rcx, infer::CallRcvr(deref_expr.span),
                                   self_ty, r_deref_expr);
-                match fn_sig.output {
-                    ty::FnConverging(return_type) => {
-                        type_must_outlive(rcx, infer::CallReturn(deref_expr.span),
-                                          return_type, r_deref_expr);
-                        return_type
-                    }
-                }
+                type_must_outlive(rcx, infer::CallReturn(deref_expr.span),
+                                  fn_sig.output, r_deref_expr);
+                fn_sig.output
             }
             None => derefd_ty
         };

@@ -13,7 +13,7 @@ use middle::const_val::ConstVal;
 use rustc_const_math::{ConstUsize, ConstInt};
 use hir::def_id::DefId;
 use ty::subst::Substs;
-use ty::{self, AdtDef, ClosureSubsts, FnOutput, Region, Ty};
+use ty::{self, AdtDef, ClosureSubsts, Region, Ty};
 use util::ppaux;
 use rustc_back::slice;
 use hir::InlineAsm;
@@ -42,7 +42,7 @@ pub struct Mir<'tcx> {
     pub promoted: Vec<Mir<'tcx>>,
 
     /// Return type of the function.
-    pub return_ty: FnOutput<'tcx>,
+    pub return_ty: Ty<'tcx>,
 
     /// Variables: these are stack slots corresponding to user variables. They may be
     /// assigned many times.

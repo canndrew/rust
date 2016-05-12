@@ -55,14 +55,13 @@ use hir::intravisit::Visitor;
 
 pub use self::sty::{Binder, DebruijnIndex};
 pub use self::sty::{BuiltinBound, BuiltinBounds, ExistentialBounds};
-pub use self::sty::{BareFnTy, FnSig, PolyFnSig, FnOutput, PolyFnOutput};
+pub use self::sty::{BareFnTy, FnSig, PolyFnSig};
 pub use self::sty::{ClosureTy, InferTy, ParamTy, ProjectionTy, TraitTy};
 pub use self::sty::{ClosureSubsts, TypeAndMut};
 pub use self::sty::{TraitRef, TypeVariants, PolyTraitRef};
 pub use self::sty::{BoundRegion, EarlyBoundRegion, FreeRegion, Region};
 pub use self::sty::{TyVid, IntVid, FloatVid, RegionVid, SkolemizedRegionVid};
 pub use self::sty::BoundRegion::*;
-pub use self::sty::FnOutput::*;
 pub use self::sty::InferTy::*;
 pub use self::sty::Region::*;
 pub use self::sty::TypeVariants::*;

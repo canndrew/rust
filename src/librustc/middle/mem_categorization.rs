@@ -890,7 +890,7 @@ impl<'t, 'a,'tcx> MemCategorizationContext<'t, 'a, 'tcx> {
         let base_cmt = match method_ty {
             Some(method_ty) => {
                 let ref_ty =
-                    self.tcx().no_late_bound_regions(&method_ty.fn_ret()).unwrap().unwrap();
+                    self.tcx().no_late_bound_regions(&method_ty.fn_ret()).unwrap();
                 self.cat_rvalue_node(node.id(), node.span(), ref_ty)
             }
             None => base_cmt
@@ -1343,7 +1343,6 @@ impl<'t, 'a,'tcx> MemCategorizationContext<'t, 'a, 'tcx> {
         // to skip past the binder.
         self.tcx().no_late_bound_regions(&method_ty.fn_ret())
            .unwrap()
-           .unwrap() // overloaded ops do not diverge, either
     }
 }
 

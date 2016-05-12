@@ -162,8 +162,7 @@ impl FlagComputation {
 
         computation.add_tys(&fn_sig.0.inputs);
 
-        let ty::FnConverging(output) = fn_sig.0.output;
-        computation.add_ty(output);
+        computation.add_ty(fn_sig.0.output);
 
         self.add_bound_computation(&computation);
     }

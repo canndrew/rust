@@ -1278,7 +1278,7 @@ impl<'cx, 'tcx> SelectionContext<'cx, 'tcx> {
                 abi: Abi::Rust,
                 sig: ty::Binder(ty::FnSig {
                     inputs: _,
-                    output: ty::FnConverging(_),
+                    output: _,
                     variadic: false
                 })
             }) |
@@ -1287,7 +1287,7 @@ impl<'cx, 'tcx> SelectionContext<'cx, 'tcx> {
                 abi: Abi::Rust,
                 sig: ty::Binder(ty::FnSig {
                     inputs: _,
-                    output: ty::FnConverging(_),
+                    output: _,
                     variadic: false
                 })
             }) => {

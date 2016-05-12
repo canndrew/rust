@@ -1822,10 +1822,10 @@ fn ty_of_method_or_bare_fn<'a, 'tcx>(this: &AstConv<'tcx>,
 
     let output_ty = match decl.output {
         hir::Return(ref output) =>
-            ty::FnConverging(convert_ty_with_lifetime_elision(this,
-                                                              implied_output_region,
-                                                              &output)),
-        hir::DefaultReturn(..) => ty::FnConverging(this.tcx().mk_nil()),
+            convert_ty_with_lifetime_elision(this,
+                                             implied_output_region,
+                                             &output),
+        hir::DefaultReturn(..) => this.tcx().mk_nil(),
     };
 
     (ty::BareFnTy {
@@ -1970,9 +1970,9 @@ pub fn ty_of_closure<'tcx>(
         _ if is_infer && expected_ret_ty.is_some() =>
             expected_ret_ty.unwrap(),
         _ if is_infer =>
-            ty::FnConverging(this.ty_infer(None, None, None, decl.output.span())),
+            this.ty_infer(None, None, None, decl.output.span()),
         hir::Return(ref output) =>
-            ty::FnConverging(ast_ty_to_ty(this, &rb, &output)),
+            ast_ty_to_ty(this, &rb, &output),
         hir::DefaultReturn(..) => bug!(),
     };
 

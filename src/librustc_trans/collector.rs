@@ -1341,12 +1341,9 @@ pub fn push_unique_type_name<'a, 'tcx>(cx: &CrateContext<'a, 'tcx>,
 
             output.push(')');
 
-            match sig.output {
-                ty::FnConverging(result_type) if result_type.is_nil() => {}
-                ty::FnConverging(result_type) => {
-                    output.push_str(" -> ");
-                    push_unique_type_name(cx, result_type, output);
-                }
+            if !sig.output.is_nil() {
+                output.push_str(" -> ");
+                push_unique_type_name(cx, sig.output, output);
             }
         },
         ty::TyClosure(def_id, ref closure_substs) => {

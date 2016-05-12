@@ -324,11 +324,9 @@ pub fn create_function_debug_context<'a, 'tcx>(cx: &CrateContext<'a, 'tcx>,
         let mut signature = Vec::with_capacity(sig.inputs.len() + 1);
 
         // Return type -- llvm::DIBuilder wants this at index 0
-        signature.push(match sig.output {
-            ty::FnConverging(ret_ty) => match ret_ty.sty {
-                ty::TyTuple(ref tys) if tys.is_empty() => ptr::null_mut(),
-                _ => type_metadata(cx, ret_ty, codemap::DUMMY_SP)
-            },
+        signature.push(match sig.output.sty {
+            ty::TyTuple(ref tys) if tys.is_empty() => ptr::null_mut(),
+            _ => type_metadata(cx, sig.output, codemap::DUMMY_SP)
         });
 
         let inputs = if abi == Abi::RustCall {

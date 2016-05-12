@@ -274,7 +274,7 @@ impl<'a, 'tcx> Env<'a, 'tcx> {
             abi: Abi::Rust,
             sig: ty::Binder(ty::FnSig {
                 inputs: input_args,
-                output: ty::FnConverging(output_ty),
+                output: output_ty,
                 variadic: false,
             }),
         })

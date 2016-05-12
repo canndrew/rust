@@ -467,13 +467,12 @@ impl<'a, 'tcx> Qualifier<'a, 'tcx> {
             }
         }
 
-        let return_ty = mir.return_ty.unwrap();
         self.qualif = self.return_qualif.unwrap_or(Qualif::NOT_CONST);
 
         match self.mode {
             Mode::StaticMut => {
                 // Check for destructors in static mut.
-                self.add_type(return_ty);
+                self.add_type(mir.return_ty);
                 self.deny_drop();
             }
             _ => {
@@ -481,7 +480,7 @@ impl<'a, 'tcx> Qualifier<'a, 'tcx> {
                 // conservative type qualification instead.
                 if self.qualif.intersects(Qualif::CONST_ERROR) {
                     self.qualif = Qualif::empty();
-                    self.add_type(return_ty);
+                    self.add_type(mir.return_ty);
                 }
             }
         }
@@ -1016,7 +1015,7 @@ impl<'tcx> MirMapPass<'tcx> for QualifyAndPromoteConstants {
 
             // Statics must be Sync.
             if mode == Mode::Static {
-                let ty = mir.return_ty.unwrap();
+                let ty = mir.return_ty;
                 let infcx = infer::new_infer_ctxt(tcx,
                                                   &tcx.tables,
                                                   None,

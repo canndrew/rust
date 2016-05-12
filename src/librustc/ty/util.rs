@@ -373,8 +373,7 @@ impl<'tcx> TyCtxt<'tcx> {
             let fn_sig = |state: &mut SipHasher, sig: &ty::Binder<ty::FnSig<'tcx>>| {
                 let sig = tcx.anonymize_late_bound_regions(sig).0;
                 for a in &sig.inputs { helper(tcx, *a, svh, state); }
-                let ty::FnConverging(output) = sig.output;
-                helper(tcx, output, svh, state);
+                helper(tcx, sig.output, svh, state);
             };
             ty.maybe_walk(|ty| {
                 match ty.sty {

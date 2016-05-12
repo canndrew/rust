@@ -22,7 +22,6 @@ use super::method;
 use super::structurally_resolved_type;
 use super::TupleArgumentsFlag;
 use super::UnresolvedTypeAction;
-use super::write_call;
 
 use CrateCtxt;
 use middle::cstore::LOCAL_CRATE;
@@ -252,7 +251,7 @@ fn confirm_builtin_call<'a,'tcx>(fcx: &FnCtxt<'a,'tcx>,
             // set up all the node type bindings.
             error_fn_sig = ty::Binder(ty::FnSig {
                 inputs: err_args(fcx.tcx(), arg_exprs.len()),
-                output: ty::FnConverging(fcx.tcx().types.err),
+                output: fcx.tcx().types.err,
                 variadic: false
             });
 
@@ -286,7 +285,7 @@ fn confirm_builtin_call<'a,'tcx>(fcx: &FnCtxt<'a,'tcx>,
                          fn_sig.variadic,
                          TupleArgumentsFlag::DontTupleArguments);
 
-    write_call(fcx, call_expr, fn_sig.output);
+    fcx.write_expr(call_expr.id, fn_sig.output);
 }
 
 fn confirm_deferred_closure_call<'a,'tcx>(fcx: &FnCtxt<'a,'tcx>,
@@ -315,7 +314,7 @@ fn confirm_deferred_closure_call<'a,'tcx>(fcx: &FnCtxt<'a,'tcx>,
                          fn_sig.variadic,
                          TupleArgumentsFlag::TupleArguments);
 
-    write_call(fcx, call_expr, fn_sig.output);
+    fcx.write_expr(call_expr.id, fn_sig.output);
 }
 
 fn confirm_overloaded_call<'a,'tcx>(fcx: &FnCtxt<'a, 'tcx>,
@@ -333,7 +332,7 @@ fn confirm_overloaded_call<'a,'tcx>(fcx: &FnCtxt<'a, 'tcx>,
                                     arg_exprs,
                                     TupleArgumentsFlag::TupleArguments,
                                     expected);
-    write_call(fcx, call_expr, output_type);
+    fcx.write_expr(call_expr.id, output_type);
 
     write_overloaded_call_method_map(fcx, call_expr, method_callee);
 }
@@ -388,11 +387,10 @@ impl<'tcx> DeferredCallResolution<'tcx> for CallResolution<'tcx> {
                     demand::eqtype(fcx, self.call_expr.span, self_arg_ty, method_arg_ty);
                 }
 
-                let nilty = fcx.tcx().mk_nil();
                 demand::eqtype(fcx,
                                self.call_expr.span,
-                               method_sig.output.unwrap_or(nilty),
-                               self.fn_sig.output.unwrap_or(nilty));
+                               method_sig.output,
+                               self.fn_sig.output);
 
                 write_overloaded_call_method_map(fcx, self.call_expr, method_callee);
             }

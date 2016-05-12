@@ -276,8 +276,7 @@ fn virtual_call_violation_for_method<'tcx>(tcx: &TyCtxt<'tcx>,
             return Some(MethodViolationCode::ReferencesSelf);
         }
     }
-    let ty::FnConverging(result_type) = sig.0.output;
-    if contains_illegal_self_type_reference(tcx, trait_def_id, result_type) {
+    if contains_illegal_self_type_reference(tcx, trait_def_id, sig.0.output) {
         return Some(MethodViolationCode::ReferencesSelf);
     }
 

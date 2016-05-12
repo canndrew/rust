@@ -289,7 +289,7 @@ pub struct FnCtxt<'a, 'tcx: 'a> {
     // expects the types within the function to be consistent.
     err_count_on_creation: usize,
 
-    ret_ty: ty::FnOutput<'tcx>,
+    ret_ty: Ty<'tcx>,
 
     ps: RefCell<UnsafetyState>,
 
@@ -333,7 +333,7 @@ impl<'a, 'tcx> Inherited<'a, 'tcx> {
 // Used by check_const and check_enum_variants
 pub fn blank_fn_ctxt<'a, 'tcx>(ccx: &'a CrateCtxt<'a, 'tcx>,
                                inh: &'a Inherited<'a, 'tcx>,
-                               rty: ty::FnOutput<'tcx>,
+                               rty: Ty<'tcx>,
                                body_id: ast::NodeId)
                                -> FnCtxt<'a, 'tcx> {
     FnCtxt {
@@ -587,8 +587,7 @@ fn check_fn<'a, 'tcx>(ccx: &'a CrateCtxt<'a, 'tcx>,
         ccx: ccx
     };
 
-    let ty::FnConverging(result_type) = ret_ty;
-    fcx.require_type_is_sized(result_type, decl.output.span(), traits::ReturnType);
+    fcx.require_type_is_sized(ret_ty, decl.output.span(), traits::ReturnType);
 
     debug!("fn-sig-map: fn_id={} fn_sig={:?}", fn_id, fn_sig);
 
@@ -628,7 +627,7 @@ fn check_fn<'a, 'tcx>(ccx: &'a CrateCtxt<'a, 'tcx>,
         visit.visit_block(body);
     }
 
-    check_block_with_expected(&fcx, body, ExpectHasType(result_type));
+    check_block_with_expected(&fcx, body, ExpectHasType(ret_ty));
 
     for (input, arg) in decl.inputs.iter().zip(arg_tys) {
         fcx.write_ty(input.id, arg);
@@ -2180,7 +2179,7 @@ fn make_overloaded_lvalue_return_type<'tcx>(tcx: &TyCtxt<'tcx>,
     // extract method return type, which will be &T;
     // all LB regions should have been instantiated during method lookup
     let ret_ty = method.ty.fn_ret();
-    let ret_ty = tcx.no_late_bound_regions(&ret_ty).unwrap().unwrap();
+    let ret_ty = tcx.no_late_bound_regions(&ret_ty).unwrap();
 
     // method returns &T, but the type as visible to user is T, so deref
     ret_ty.builtin_deref(true, NoPreference).unwrap()
@@ -2312,7 +2311,7 @@ fn check_method_argument_types<'a, 'tcx>(fcx: &FnCtxt<'a, 'tcx>,
                                          args_no_rcvr: &'tcx [P<hir::Expr>],
                                          tuple_arguments: TupleArgumentsFlag,
                                          expected: Expectation<'tcx>)
-                                         -> ty::FnOutput<'tcx> {
+                                         -> Ty<'tcx> {
     if method_fn_ty.references_error() {
         let err_inputs = err_args(fcx.tcx(), args_no_rcvr.len());
 
@@ -2328,7 +2327,7 @@ fn check_method_argument_types<'a, 'tcx>(fcx: &FnCtxt<'a, 'tcx>,
                              args_no_rcvr,
                              false,
                              tuple_arguments);
-        ty::FnConverging(fcx.tcx().types.err)
+        fcx.tcx().types.err
     } else {
         match method_fn_ty.sty {
             ty::TyFnDef(_, _, ref fty) => {
@@ -2582,14 +2581,6 @@ fn err_args<'tcx>(tcx: &TyCtxt<'tcx>, len: usize) -> Vec<Ty<'tcx>> {
     (0..len).map(|_| tcx.types.err).collect()
 }
 
-fn write_call<'a, 'tcx>(fcx: &FnCtxt<'a, 'tcx>,
-                        call_expr: &hir::Expr,
-                        output: ty::FnOutput<'tcx>) {
-    fcx.write_expr(call_expr.id, match output {
-        ty::FnConverging(output_ty) => output_ty,
-    });
-}
-
 // AST fragment checking
 fn check_lit<'a, 'tcx>(fcx: &FnCtxt<'a, 'tcx>,
                        lit: &ast::Lit,
@@ -2732,18 +2723,17 @@ enum TupleArgumentsFlag {
 fn expected_types_for_fn_args<'a, 'tcx>(fcx: &FnCtxt<'a, 'tcx>,
                                         call_span: Span,
                                         expected_ret: Expectation<'tcx>,
-                                        formal_ret: ty::FnOutput<'tcx>,
+                                        formal_ret: Ty<'tcx>,
                                         formal_args: &[Ty<'tcx>])
                                         -> Vec<Ty<'tcx>> {
     let expected_args = expected_ret.only_has_type(fcx).and_then(|ret_ty| {
-        let ty::FnConverging(formal_ret_ty) = formal_ret;
         fcx.infcx().commit_regions_if_ok(|| {
             // Attempt to apply a subtyping relationship between the formal
             // return type (likely containing type variables if the function
             // is polymorphic) and the expected return type.
             // No argument expectations are produced if unification fails.
             let origin = TypeOrigin::Misc(call_span);
-            let ures = fcx.infcx().sub_types(false, origin, formal_ret_ty, ret_ty);
+            let ures = fcx.infcx().sub_types(false, origin, formal_ret, ret_ty);
             // FIXME(#15760) can't use try! here, FromError doesn't default
             // to identity so the resulting type is not constrained.
             match ures {
@@ -2831,7 +2821,7 @@ fn check_expr_with_expectation_and_lvalue_pref<'a, 'tcx>(fcx: &FnCtxt<'a, 'tcx>,
                                                  DontTupleArguments,
                                                  expected);
 
-        write_call(fcx, expr, ret_ty);
+        fcx.write_expr(expr.id, ret_ty);
     }
 
     // A generic function for checking the then and else in an if
@@ -3422,20 +3412,16 @@ fn check_expr_with_expectation_and_lvalue_pref<'a, 'tcx>(fcx: &FnCtxt<'a, 'tcx>,
       hir::ExprBreak(_) => { fcx.write_ty(id, fcx.infcx().next_diverging_ty_var()); }
       hir::ExprAgain(_) => { fcx.write_ty(id, fcx.infcx().next_diverging_ty_var()); }
       hir::ExprRet(ref expr_opt) => {
-        match fcx.ret_ty {
-            ty::FnConverging(result_type) => {
-                match *expr_opt {
-                    None =>
-                        if let Err(_) = fcx.mk_eqty(false, TypeOrigin::Misc(expr.span),
-                                                    result_type, fcx.tcx().mk_nil()) {
-                            span_err!(tcx.sess, expr.span, E0069,
-                                "`return;` in a function whose return type is \
-                                 not `()`");
-                        },
-                    Some(ref e) => {
-                        check_expr_coercable_to_type(fcx, &e, result_type);
-                    }
-                }
+        match *expr_opt {
+            None =>
+                if let Err(_) = fcx.mk_eqty(false, TypeOrigin::Misc(expr.span),
+                                            fcx.ret_ty, fcx.tcx().mk_nil()) {
+                    span_err!(tcx.sess, expr.span, E0069,
+                        "`return;` in a function whose return type is \
+                         not `()`");
+                },
+            Some(ref e) => {
+                check_expr_coercable_to_type(fcx, &e, fcx.ret_ty);
             }
         }
         fcx.write_ty(id, fcx.infcx().next_diverging_ty_var());
@@ -4023,7 +4009,7 @@ fn check_const_in_type<'a,'tcx>(ccx: &'a CrateCtxt<'a,'tcx>,
                                 expected_type: Ty<'tcx>) {
     let tables = RefCell::new(ty::Tables::empty());
     let inh = static_inherited_fields(ccx, &tables);
-    let fcx = blank_fn_ctxt(ccx, &inh, ty::FnConverging(expected_type), expr.id);
+    let fcx = blank_fn_ctxt(ccx, &inh, expected_type, expr.id);
     check_const_with_ty(&fcx, expr.span, expr, expected_type);
 }
 
@@ -4034,7 +4020,7 @@ fn check_const<'a,'tcx>(ccx: &CrateCtxt<'a,'tcx>,
     let tables = RefCell::new(ty::Tables::empty());
     let inh = static_inherited_fields(ccx, &tables);
     let rty = ccx.tcx.node_id_to_type(id);
-    let fcx = blank_fn_ctxt(ccx, &inh, ty::FnConverging(rty), e.id);
+    let fcx = blank_fn_ctxt(ccx, &inh, rty, e.id);
     let declty = fcx.ccx.tcx.lookup_item_type(ccx.tcx.map.local_def_id(id)).ty;
     check_const_with_ty(&fcx, sp, e, declty);
 }
@@ -4130,7 +4116,7 @@ pub fn check_enum_variants<'a,'tcx>(ccx: &CrateCtxt<'a,'tcx>,
 
         let tables = RefCell::new(ty::Tables::empty());
         let inh = static_inherited_fields(ccx, &tables);
-        let fcx = blank_fn_ctxt(ccx, &inh, ty::FnConverging(rty), id);
+        let fcx = blank_fn_ctxt(ccx, &inh, rty, id);
 
         let repr_type_ty = ccx.tcx.enum_repr_type(Some(&hint)).to_ty(&ccx.tcx);
         for v in vs {

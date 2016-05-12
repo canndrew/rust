@@ -128,13 +128,7 @@ fn write_graph_label<W: Write>(tcx: &ty::TyCtxt, nid: NodeId, mir: &Mir, w: &mut
         write!(w, "{:?}: {}", Lvalue::Arg(i as u32), escape(&arg.ty))?;
     }
 
-    write!(w, ") -&gt; ")?;
-
-    // fn return type.
-    match mir.return_ty {
-        ty::FnOutput::FnConverging(ty) => write!(w, "{}", escape(ty))?,
-    }
-
+    write!(w, ") -&gt; {}", escape(mir.return_ty))?;
     write!(w, r#"<br align="left"/>"#)?;
 
     // User variable types (including the user's name in a comment).

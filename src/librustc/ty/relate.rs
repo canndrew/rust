@@ -255,11 +255,7 @@ impl<'a,'tcx:'a> Relate<'a,'tcx> for ty::FnSig<'tcx> {
         let inputs = relate_arg_vecs(relation,
                                      &a.inputs,
                                      &b.inputs)?;
-
-        let output = match (a.output, b.output) {
-            (ty::FnConverging(a_ty), ty::FnConverging(b_ty)) =>
-                Ok(ty::FnConverging(relation.relate(&a_ty, &b_ty)?)),
-        }?;
+        let output = relation.relate(&a.output, &b.output)?;
 
         return Ok(ty::FnSig {inputs: inputs,
                              output: output,
