@@ -319,6 +319,10 @@ impl<'tcx> CastCheck<'tcx> {
         use rustc::ty::cast::IntTy::*;
         use rustc::ty::cast::CastTy::*;
 
+        if self.expr_ty.is_empty(fcx.tcx()) {
+            return Ok(CastKind::CoercionCast);
+        }
+
         let (t_from, t_cast) = match (CastTy::from_ty(self.expr_ty),
                                       CastTy::from_ty(self.cast_ty)) {
             (Some(t_from), Some(t_cast)) => (t_from, t_cast),
