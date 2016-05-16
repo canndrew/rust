@@ -319,6 +319,10 @@ impl<'tcx> CastCheck<'tcx> {
         use rustc::ty::cast::IntTy::*;
         use rustc::ty::cast::CastTy::*;
 
+        if let ty::TypeVariants::TyEmpty = self.expr_ty.sty {
+            return Ok(CastKind::EmptyToAny);
+        }
+
         let (t_from, t_cast) = match (CastTy::from_ty(self.expr_ty),
                                       CastTy::from_ty(self.cast_ty)) {
             (Some(t_from), Some(t_cast)) => (t_from, t_cast),
