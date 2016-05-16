@@ -441,18 +441,22 @@ impl<'a, 'tcx> TypeChecker<'a, 'tcx> {
                        sig: &ty::FnSig<'tcx>,
                        destination: &Option<(Lvalue<'tcx>, BasicBlock)>) {
         let tcx = self.tcx();
-        match (destination, sig.output) {
-            (&Some((ref dest, _)), ty) => {
+        match (destination, sig.output.is_empty(tcx)) {
+            (&Some(..), true) => {
+                span_mirbug!(self, term, "call to diverging function {:?} with dest", sig);
+            }
+            (&Some((ref dest, _)), false) => {
                 let dest_ty = mir.lvalue_ty(tcx, dest).to_ty(tcx);
-                if let Err(terr) = self.mk_subty(self.last_span, ty, dest_ty) {
+                if let Err(terr) = self.mk_subty(self.last_span, sig.output, dest_ty) {
                     span_mirbug!(self, term,
                                  "call dest mismatch ({:?} <- {:?}): {:?}",
-                                 dest_ty, ty, terr);
+                                 dest_ty, sig.output, terr);
                 }
             }
-            (&None, _) => {
+            (&None, true) => {}
+            (&None, false) => {
                 span_mirbug!(self, term, "call to converging function {:?} w/o dest", sig);
-             }
+            }
         }
     }
 
