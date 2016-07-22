@@ -478,8 +478,11 @@ pub enum FnOutput<'tcx> {
 }
 
 impl<'tcx> FnOutput<'tcx> {
-    pub fn diverges(&self) -> bool {
-        *self == FnDiverging
+    pub fn diverges(&self, tcx: TyCtxt) -> bool {
+        match *self {
+            FnConverging(ref ty) => ty.is_empty(tcx),
+            FnDiverging => true,
+        }
     }
 
     pub fn unwrap(self) -> Ty<'tcx> {
@@ -507,8 +510,8 @@ impl<'tcx> FnOutput<'tcx> {
 pub type PolyFnOutput<'tcx> = Binder<FnOutput<'tcx>>;
 
 impl<'tcx> PolyFnOutput<'tcx> {
-    pub fn diverges(&self) -> bool {
-        self.0.diverges()
+    pub fn diverges(&self, tcx: TyCtxt) -> bool {
+        self.0.diverges(tcx)
     }
 }
 
@@ -930,11 +933,15 @@ impl<'a, 'gcx, 'tcx> TyS<'tcx> {
         }
     }
 
-    pub fn is_empty(&self, _cx: TyCtxt) -> bool {
+    pub fn is_empty(&self, cx: TyCtxt) -> bool {
         // FIXME(#24885): be smarter here
         match self.sty {
             TyEnum(def, _) | TyStruct(def, _) => def.is_empty(),
-            _ => false
+            TyEmpty => true,
+            TyTuple(ref tys) => tys.iter().any(|ty| ty.is_empty(cx)),
+            // FIXME (canndrew): this line breaks core::fmt
+            //TyRef(_, ref tm) => tm.ty.is_empty(cx),
+            _ => false,
         }
     }
 
