@@ -1174,15 +1174,6 @@ impl Clean<FnDecl> for hir::FnDecl {
     }
 }
 
-impl<'tcx> Clean<Type> for ty::FnOutput<'tcx> {
-    fn clean(&self, cx: &DocContext) -> Type {
-        match *self {
-            ty::FnConverging(ty) => ty.clean(cx),
-            ty::FnDiverging => Bottom
-        }
-    }
-}
-
 impl<'a, 'tcx> Clean<FnDecl> for (DefId, &'a ty::PolyFnSig<'tcx>) {
     fn clean(&self, cx: &DocContext) -> FnDecl {
         let (did, sig) = *self;
@@ -1252,7 +1243,6 @@ impl Clean<Argument> for hir::Arg {
 pub enum FunctionRetTy {
     Return(Type),
     DefaultReturn,
-    NoReturn
 }
 
 impl Clean<FunctionRetTy> for hir::FunctionRetTy {
@@ -1260,7 +1250,6 @@ impl Clean<FunctionRetTy> for hir::FunctionRetTy {
         match *self {
             hir::Return(ref typ) => Return(typ.clean(cx)),
             hir::DefaultReturn(..) => DefaultReturn,
-            hir::NoReturn(..) => NoReturn
         }
     }
 }

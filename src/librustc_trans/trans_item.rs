@@ -558,15 +558,9 @@ pub fn push_unique_type_name<'a, 'tcx>(tcx: TyCtxt<'a, 'tcx, 'tcx>,
 
             output.push(')');
 
-            match sig.output {
-                ty::FnConverging(result_type) if result_type.is_nil() => {}
-                ty::FnConverging(result_type) => {
-                    output.push_str(" -> ");
-                    push_unique_type_name(tcx, result_type, output);
-                }
-                ty::FnDiverging => {
-                    output.push_str(" -> !");
-                }
+            if !sig.output.is_nil() {
+                output.push_str(" -> ");
+                push_unique_type_name(tcx, sig.output, output);
             }
         },
         ty::TyClosure(def_id, ref closure_substs) => {
