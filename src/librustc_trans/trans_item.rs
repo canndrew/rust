@@ -275,7 +275,7 @@ impl<'a, 'tcx> TransItem<'tcx> {
 
         let sig = ty::FnSig {
             inputs: vec![tcx.mk_mut_ptr(tcx.types.i8)],
-            output: ty::FnOutput::FnConverging(tcx.mk_nil()),
+            output: tcx.mk_nil(),
             variadic: false,
         };
 
