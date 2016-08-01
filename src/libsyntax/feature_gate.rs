@@ -277,7 +277,10 @@ declare_features! (
     (active, cfg_target_has_atomic, "1.9.0", Some(32976)),
 
     // Allows `..` in tuple (struct) patterns
-    (active, dotdot_in_tuple_patterns, "1.10.0", Some(33627))
+    (active, dotdot_in_tuple_patterns, "1.10.0", Some(33627)),
+
+    // The `!` type
+    (active, bang_type, "1.13.0", Some(35121))
 );
 
 declare_features! (
@@ -952,9 +955,23 @@ impl<'a> Visitor for PostExpansionVisitor<'a> {
             ast::TyKind::BareFn(ref bare_fn_ty) => {
                 self.check_abi(bare_fn_ty.abi, ty.span);
             }
+            ast::TyKind::Empty => {
+                gate_feature_post!(&self, bang_type, ty.span,
+                                   "The `!` type is experimental");
+            },
             _ => {}
         }
         visit::walk_ty(self, ty)
+    }
+
+    fn visit_fn_ret_ty(&mut self, ret_ty: &ast::FunctionRetTy) {
+        if let ast::FunctionRetTy::Ty(ref output_ty) = *ret_ty {
+            match output_ty.node {
+                ast::TyKind::Empty => return,
+                _ => (),
+            };
+            visit::walk_ty(self, output_ty)
+        }
     }
 
     fn visit_expr(&mut self, e: &ast::Expr) {
