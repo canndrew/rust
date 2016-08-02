@@ -1540,13 +1540,13 @@ impl<'a, 'gcx, 'tcx> FnCtxt<'a, 'gcx, 'tcx> {
         debug!("write_ty({}, {:?}) in fcx {}",
                node_id, ty, self.tag());
         self.tables.borrow_mut().node_types.insert(node_id, ty);
-    }
 
-    #[inline]
-    pub fn write_ty_expr(&self, node_id: ast::NodeId, ty: Ty<'tcx>) {
-        self.write_ty(node_id, ty);
+        // Add adjustments to !-expressions
         if ty.is_never() {
-            self.write_adjustment(node_id, adjustment::AdjustNeverToAny(self.next_diverging_ty_var()));
+            if let Some(hir::map::NodeExpr(_)) = self.tcx.map.find(node_id) {
+                let adj = adjustment::AdjustNeverToAny(self.next_diverging_ty_var());
+                self.write_adjustment(node_id, adj);
+            }
         }
     }
 
@@ -1682,7 +1682,7 @@ impl<'a, 'gcx, 'tcx> FnCtxt<'a, 'gcx, 'tcx> {
     }
 
     pub fn write_never(&self, node_id: ast::NodeId) {
-        self.write_ty_expr(node_id, self.tcx.types.never);
+        self.write_ty(node_id, self.tcx.types.never);
     }
 
     pub fn write_error(&self, node_id: ast::NodeId) {
@@ -1926,7 +1926,8 @@ impl<'a, 'gcx, 'tcx> FnCtxt<'a, 'gcx, 'tcx> {
             if self.type_var_diverges(resolved) {
                 debug!("default_type_parameters: defaulting `{:?}` to `!` because it diverges",
                        resolved);
-                self.demand_eqtype(syntax_pos::DUMMY_SP, *ty, self.tcx.mk_diverging_default());
+                self.demand_eqtype(syntax_pos::DUMMY_SP, *ty,
+                                   self.tcx.mk_diverging_default());
             } else {
                 match self.type_is_unconstrained_numeric(resolved) {
                     UnconstrainedInt => {
@@ -2000,7 +2001,8 @@ impl<'a, 'gcx, 'tcx> FnCtxt<'a, 'gcx, 'tcx> {
             for ty in &unsolved_variables {
                 let resolved = self.resolve_type_vars_if_possible(ty);
                 if self.type_var_diverges(resolved) {
-                    self.demand_eqtype(syntax_pos::DUMMY_SP, *ty, self.tcx.mk_diverging_default());
+                    self.demand_eqtype(syntax_pos::DUMMY_SP, *ty,
+                                       self.tcx.mk_diverging_default());
                 } else {
                     match self.type_is_unconstrained_numeric(resolved) {
                         UnconstrainedInt | UnconstrainedFloat => {
@@ -2058,7 +2060,8 @@ impl<'a, 'gcx, 'tcx> FnCtxt<'a, 'gcx, 'tcx> {
             let _ = self.commit_if_ok(|_: &infer::CombinedSnapshot| {
                 for ty in &unbound_tyvars {
                     if self.type_var_diverges(ty) {
-                        self.demand_eqtype(syntax_pos::DUMMY_SP, *ty, self.tcx.mk_diverging_default());
+                        self.demand_eqtype(syntax_pos::DUMMY_SP, *ty,
+                                           self.tcx.mk_diverging_default());
                     } else {
                         match self.type_is_unconstrained_numeric(ty) {
                             UnconstrainedInt => {
@@ -2154,7 +2157,8 @@ impl<'a, 'gcx, 'tcx> FnCtxt<'a, 'gcx, 'tcx> {
         // reporting for more then one conflict.
         for ty in &unbound_tyvars {
             if self.type_var_diverges(ty) {
-                self.demand_eqtype(syntax_pos::DUMMY_SP, *ty, self.tcx.mk_diverging_default());
+                self.demand_eqtype(syntax_pos::DUMMY_SP, *ty,
+                                   self.tcx.mk_diverging_default());
             } else {
                 match self.type_is_unconstrained_numeric(ty) {
                     UnconstrainedInt => {
@@ -2625,7 +2629,7 @@ impl<'a, 'gcx, 'tcx> FnCtxt<'a, 'gcx, 'tcx> {
     fn write_call(&self,
                   call_expr: &hir::Expr,
                   output: Ty<'tcx>) {
-        self.write_ty_expr(call_expr.id, output);
+        self.write_ty(call_expr.id, output);
     }
 
     // AST fragment checking
@@ -2858,7 +2862,7 @@ impl<'a, 'gcx, 'tcx> FnCtxt<'a, 'gcx, 'tcx> {
                 // the type of the block, because old trans still uses it.
                 let adj = self.tables.borrow().adjustments.get(&then.id).cloned();
                 if res.is_ok() && adj.is_some() {
-                    self.write_ty_expr(then_blk.id, self.adjust_expr_ty(then, adj.as_ref()));
+                    self.write_ty(then_blk.id, self.adjust_expr_ty(then, adj.as_ref()));
                 }
 
                 res
@@ -2899,7 +2903,7 @@ impl<'a, 'gcx, 'tcx> FnCtxt<'a, 'gcx, 'tcx> {
             }
         };
 
-        self.write_ty_expr(id, if_ty);
+        self.write_ty(id, if_ty);
     }
 
     // Check field access expressions
@@ -2920,7 +2924,7 @@ impl<'a, 'gcx, 'tcx> FnCtxt<'a, 'gcx, 'tcx> {
                     let field_ty = self.field_ty(expr.span, field, substs);
                     if field.vis.is_accessible_from(self.body_id, &self.tcx().map) {
                         autoderef.finalize(lvalue_pref, Some(base));
-                        self.write_ty_expr(expr.id, field_ty);
+                        self.write_ty(expr.id, field_ty);
                         self.write_autoderef_adjustment(base.id, autoderefs);
                         return;
                     }
@@ -2932,7 +2936,7 @@ impl<'a, 'gcx, 'tcx> FnCtxt<'a, 'gcx, 'tcx> {
 
         if let Some((did, field_ty)) = private_candidate {
             let struct_path = self.tcx().item_path_str(did);
-            self.write_ty_expr(expr.id, field_ty);
+            self.write_ty(expr.id, field_ty);
             let msg = format!("field `{}` of struct `{}` is private", field.node, struct_path);
             let mut err = self.tcx().sess.struct_span_err(expr.span, &msg);
             // Also check if an accessible method exists, which is often what is meant.
@@ -3027,7 +3031,7 @@ impl<'a, 'gcx, 'tcx> FnCtxt<'a, 'gcx, 'tcx> {
 
             if let Some(field_ty) = field {
                 autoderef.finalize(lvalue_pref, Some(base));
-                self.write_ty_expr(expr.id, field_ty);
+                self.write_ty(expr.id, field_ty);
                 self.write_autoderef_adjustment(base.id, autoderefs);
                 return;
             }
@@ -3038,7 +3042,7 @@ impl<'a, 'gcx, 'tcx> FnCtxt<'a, 'gcx, 'tcx> {
             let struct_path = self.tcx().item_path_str(did);
             let msg = format!("field `{}` of struct `{}` is private", idx.node, struct_path);
             self.tcx().sess.span_err(expr.span, &msg);
-            self.write_ty_expr(expr.id, field_ty);
+            self.write_ty(expr.id, field_ty);
             return;
         }
 
@@ -3286,7 +3290,7 @@ impl<'a, 'gcx, 'tcx> FnCtxt<'a, 'gcx, 'tcx> {
 
           hir::ExprLit(ref lit) => {
             let typ = self.check_lit(&lit, expected);
-            self.write_ty_expr(id, typ);
+            self.write_ty(id, typ);
           }
           hir::ExprBinary(op, ref lhs, ref rhs) => {
             self.check_binop(expr, op, lhs, rhs);
@@ -3352,7 +3356,7 @@ impl<'a, 'gcx, 'tcx> FnCtxt<'a, 'gcx, 'tcx> {
                     }
                 }
             }
-            self.write_ty_expr(id, oprnd_t);
+            self.write_ty(id, oprnd_t);
           }
           hir::ExprAddrOf(mutbl, ref oprnd) => {
             let hint = expected.only_has_type(self).map_or(NoExpectation, |ty| {
@@ -3403,7 +3407,7 @@ impl<'a, 'gcx, 'tcx> FnCtxt<'a, 'gcx, 'tcx> {
                   let (scheme, predicates) = self.type_scheme_and_predicates_for_def(expr.span,
                                                                                      def);
                   self.instantiate_value_path(segments, scheme, &predicates,
-                                              opt_ty, def, expr.span, id, true);
+                                              opt_ty, def, expr.span, id);
               } else {
                   self.set_tainted_by_errors();
                   self.write_error(id);
@@ -3498,7 +3502,7 @@ impl<'a, 'gcx, 'tcx> FnCtxt<'a, 'gcx, 'tcx> {
           }
           hir::ExprBlock(ref b) => {
             self.check_block_with_expected(&b, expected);
-            self.write_ty_expr(id, self.node_ty(b.id));
+            self.write_ty(id, self.node_ty(b.id));
           }
           hir::ExprCall(ref callee, ref args) => {
               self.check_call(expr, &callee, &args[..], expected);
@@ -3534,7 +3538,7 @@ impl<'a, 'gcx, 'tcx> FnCtxt<'a, 'gcx, 'tcx> {
             } else {
                 // Write a type for the whole expression, assuming everything is going
                 // to work out Ok.
-                self.write_ty_expr(id, t_cast);
+                self.write_ty(id, t_cast);
 
                 // Defer other checks until we're done type checking.
                 let mut deferred_cast_checks = self.deferred_cast_checks.borrow_mut();
@@ -3551,7 +3555,7 @@ impl<'a, 'gcx, 'tcx> FnCtxt<'a, 'gcx, 'tcx> {
           hir::ExprType(ref e, ref t) => {
             let typ = self.to_ty(&t);
             self.check_expr_eq_type(&e, typ);
-            self.write_ty_expr(id, typ);
+            self.write_ty(id, typ);
           }
           hir::ExprVec(ref args) => {
             let uty = expected.to_option(self).and_then(|uty| {
@@ -3685,7 +3689,7 @@ impl<'a, 'gcx, 'tcx> FnCtxt<'a, 'gcx, 'tcx> {
                       Some((index_ty, element_ty)) => {
                           let idx_expr_ty = self.expr_ty(idx);
                           self.demand_eqtype(expr.span, index_ty, idx_expr_ty);
-                          self.write_ty_expr(id, element_ty);
+                          self.write_ty(id, element_ty);
                       }
                       None => {
                           self.check_expr_has_type(&idx, self.tcx.types.err);
@@ -3980,7 +3984,7 @@ impl<'a, 'gcx, 'tcx> FnCtxt<'a, 'gcx, 'tcx> {
                 } else if any_diverges {
                     self.write_ty(blk.id, self.next_diverging_ty_var());
                 } else {
-                    self.write_ty_expr(blk.id, ety);
+                    self.write_ty(blk.id, ety);
                 }
             }
         };
@@ -4052,8 +4056,7 @@ impl<'a, 'gcx, 'tcx> FnCtxt<'a, 'gcx, 'tcx> {
                                   opt_self_ty: Option<Ty<'tcx>>,
                                   def: Def,
                                   span: Span,
-                                  node_id: ast::NodeId,
-                                  node_is_expr: bool)
+                                  node_id: ast::NodeId)
                                   -> Ty<'tcx> {
         debug!("instantiate_value_path(path={:?}, def={:?}, node_id={}, type_scheme={:?})",
                segments,
@@ -4317,11 +4320,7 @@ impl<'a, 'gcx, 'tcx> FnCtxt<'a, 'gcx, 'tcx> {
         debug!("instantiate_value_path: type of {:?} is {:?}",
                node_id,
                ty_substituted);
-        if node_is_expr {
-            self.write_ty_expr(node_id, ty_substituted);
-        } else {
-            self.write_ty(node_id, ty_substituted);
-        }
+        self.write_ty(node_id, ty_substituted);
         self.write_substs(node_id, ty::ItemSubsts {
             substs: substs
         });
