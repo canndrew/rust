@@ -93,7 +93,7 @@ use rustc::traits::{self, ProjectionMode};
 use rustc::ty::{GenericPredicates, TypeScheme};
 use rustc::ty::{ParamTy, ParameterEnvironment};
 use rustc::ty::{LvaluePreference, NoPreference, PreferMutLvalue};
-use rustc::ty::{self, ToPolyTraitRef, Ty, TypeVariants, TyCtxt, Visibility};
+use rustc::ty::{self, ToPolyTraitRef, Ty, TyCtxt, Visibility};
 use rustc::ty::{MethodCall, MethodCallee};
 use rustc::ty::adjustment;
 use rustc::ty::fold::TypeFoldable;
@@ -1545,8 +1545,8 @@ impl<'a, 'gcx, 'tcx> FnCtxt<'a, 'gcx, 'tcx> {
     #[inline]
     pub fn write_ty_expr(&self, node_id: ast::NodeId, ty: Ty<'tcx>) {
         self.write_ty(node_id, ty);
-        if let TypeVariants::TyEmpty = ty.sty {
-            self.write_adjustment(node_id, adjustment::AdjustEmptyToAny(self.next_diverging_ty_var()));
+        if ty.is_never() {
+            self.write_adjustment(node_id, adjustment::AdjustNeverToAny(self.next_diverging_ty_var()));
         }
     }
 
@@ -1681,8 +1681,8 @@ impl<'a, 'gcx, 'tcx> FnCtxt<'a, 'gcx, 'tcx> {
         self.write_ty(node_id, self.tcx.mk_nil());
     }
 
-    pub fn write_empty(&self, node_id: ast::NodeId) {
-        self.write_ty_expr(node_id, self.tcx.types.empty);
+    pub fn write_never(&self, node_id: ast::NodeId) {
+        self.write_ty_expr(node_id, self.tcx.types.never);
     }
 
     pub fn write_error(&self, node_id: ast::NodeId) {
@@ -1742,7 +1742,7 @@ impl<'a, 'gcx, 'tcx> FnCtxt<'a, 'gcx, 'tcx> {
     }
 
     pub fn expr_ty(&self, ex: &hir::Expr) -> Ty<'tcx> {
-        if let Some(&adjustment::AdjustEmptyToAny(ref t))
+        if let Some(&adjustment::AdjustNeverToAny(ref t))
                 = self.tables.borrow().adjustments.get(&ex.id) {
             return t;
         }
@@ -1926,7 +1926,7 @@ impl<'a, 'gcx, 'tcx> FnCtxt<'a, 'gcx, 'tcx> {
             if self.type_var_diverges(resolved) {
                 debug!("default_type_parameters: defaulting `{:?}` to `!` because it diverges",
                        resolved);
-                self.demand_eqtype(syntax_pos::DUMMY_SP, *ty, self.tcx.types.empty);
+                self.demand_eqtype(syntax_pos::DUMMY_SP, *ty, self.tcx.types.never);
             } else {
                 match self.type_is_unconstrained_numeric(resolved) {
                     UnconstrainedInt => {
@@ -2000,7 +2000,7 @@ impl<'a, 'gcx, 'tcx> FnCtxt<'a, 'gcx, 'tcx> {
             for ty in &unsolved_variables {
                 let resolved = self.resolve_type_vars_if_possible(ty);
                 if self.type_var_diverges(resolved) {
-                    self.demand_eqtype(syntax_pos::DUMMY_SP, *ty, self.tcx.types.empty);
+                    self.demand_eqtype(syntax_pos::DUMMY_SP, *ty, self.tcx.types.never);
                 } else {
                     match self.type_is_unconstrained_numeric(resolved) {
                         UnconstrainedInt | UnconstrainedFloat => {
@@ -2058,7 +2058,7 @@ impl<'a, 'gcx, 'tcx> FnCtxt<'a, 'gcx, 'tcx> {
             let _ = self.commit_if_ok(|_: &infer::CombinedSnapshot| {
                 for ty in &unbound_tyvars {
                     if self.type_var_diverges(ty) {
-                        self.demand_eqtype(syntax_pos::DUMMY_SP, *ty, self.tcx.types.empty);
+                        self.demand_eqtype(syntax_pos::DUMMY_SP, *ty, self.tcx.types.never);
                     } else {
                         match self.type_is_unconstrained_numeric(ty) {
                             UnconstrainedInt => {
@@ -2154,7 +2154,7 @@ impl<'a, 'gcx, 'tcx> FnCtxt<'a, 'gcx, 'tcx> {
         // reporting for more then one conflict.
         for ty in &unbound_tyvars {
             if self.type_var_diverges(ty) {
-                self.demand_eqtype(syntax_pos::DUMMY_SP, *ty, self.tcx.types.empty);
+                self.demand_eqtype(syntax_pos::DUMMY_SP, *ty, self.tcx.types.never);
             } else {
                 match self.type_is_unconstrained_numeric(ty) {
                     UnconstrainedInt => {
@@ -2553,9 +2553,10 @@ impl<'a, 'gcx, 'tcx> FnCtxt<'a, 'gcx, 'tcx> {
                 }
 
                 if let Some(&arg_ty) = self.tables.borrow().node_types.get(&arg.id) {
+                    // FIXME(canndrew): This is_never should probably be an is_uninhabited
                     any_diverges = any_diverges ||
                                    self.type_var_diverges(arg_ty) ||
-                                   arg_ty.is_empty(self.tcx);
+                                   arg_ty.is_never();
                 }
             }
             if any_diverges && !warned {
@@ -3423,8 +3424,8 @@ impl<'a, 'gcx, 'tcx> FnCtxt<'a, 'gcx, 'tcx> {
               }
               self.write_nil(id);
           }
-          hir::ExprBreak(_) => { self.write_empty(id); }
-          hir::ExprAgain(_) => { self.write_empty(id); }
+          hir::ExprBreak(_) => { self.write_never(id); }
+          hir::ExprAgain(_) => { self.write_never(id); }
           hir::ExprRet(ref expr_opt) => {
             if let Some(ref e) = *expr_opt {
                 self.check_expr_coercable_to_type(&e, self.ret_ty);
@@ -3442,7 +3443,7 @@ impl<'a, 'gcx, 'tcx> FnCtxt<'a, 'gcx, 'tcx> {
                         .emit();
                 }
             }
-            self.write_empty(id);
+            self.write_never(id);
           }
           hir::ExprAssign(ref lhs, ref rhs) => {
             self.check_expr_with_lvalue_pref(&lhs, PreferMutLvalue);
@@ -3484,7 +3485,7 @@ impl<'a, 'gcx, 'tcx> FnCtxt<'a, 'gcx, 'tcx> {
           hir::ExprLoop(ref body, _) => {
             self.check_block_no_value(&body);
             if !may_break(tcx, expr.id, &body) {
-                self.write_empty(id);
+                self.write_never(id);
             } else {
                 self.write_nil(id);
             }
@@ -3940,9 +3941,10 @@ impl<'a, 'gcx, 'tcx> FnCtxt<'a, 'gcx, 'tcx> {
                               "unreachable statement".to_string());
                 warned = true;
             }
+            // FIXME(canndrew): This is_never should probably be an is_uninhabited
             any_diverges = any_diverges ||
                            self.type_var_diverges(s_ty) ||
-                           s_ty.is_empty(self.tcx);
+                           s_ty.is_never();
             any_err = any_err || s_ty.references_error();
         }
         match blk.expr {
