@@ -281,7 +281,7 @@ impl<'a, 'gcx, 'tcx> FnCtxt<'a, 'gcx, 'tcx> {
                                expected: Expectation<'tcx>,
                                method_callee: ty::MethodCallee<'tcx>) -> Ty<'tcx>
     {
-        let output_type =
+        let (output_type, _) =
             self.check_method_argument_types(call_expr.span,
                                              method_callee.ty,
                                              callee_expr,

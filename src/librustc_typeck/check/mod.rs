@@ -2352,7 +2352,7 @@ impl<'a, 'gcx, 'tcx> FnCtxt<'a, 'gcx, 'tcx> {
                                    args_no_rcvr: &'gcx [P<hir::Expr>],
                                    tuple_arguments: TupleArgumentsFlag,
                                    expected: Expectation<'tcx>)
-                                   -> Ty<'tcx> {
+                                   -> (Ty<'tcx>, bool) {
         if method_fn_ty.references_error() {
             let err_inputs = self.err_args(args_no_rcvr.len());
 
@@ -2363,7 +2363,7 @@ impl<'a, 'gcx, 'tcx> FnCtxt<'a, 'gcx, 'tcx> {
 
             self.check_argument_types(sp, &err_inputs[..], &[], args_no_rcvr,
                                       false, tuple_arguments);
-            self.tcx.types.err
+            (self.tcx.types.err, true)
         } else {
             match method_fn_ty.sty {
                 ty::TyFnDef(_, _, ref fty) => {
@@ -2371,9 +2371,10 @@ impl<'a, 'gcx, 'tcx> FnCtxt<'a, 'gcx, 'tcx> {
                     let expected_arg_tys = self.expected_types_for_fn_args(sp, expected,
                                                                            fty.sig.0.output,
                                                                            &fty.sig.0.inputs[1..]);
-                    self.check_argument_types(sp, &fty.sig.0.inputs[1..], &expected_arg_tys[..],
-                                              args_no_rcvr, fty.sig.0.variadic, tuple_arguments);
-                    fty.sig.0.output
+                    let ok = self.check_argument_types(sp, &fty.sig.0.inputs[1..],
+                                                       &expected_arg_tys[..], args_no_rcvr,
+                                                       fty.sig.0.variadic, tuple_arguments);
+                    (fty.sig.0.output, ok)
                 }
                 _ => {
                     span_bug!(callee_expr.span, "method without bare fn type");
@@ -2390,7 +2391,7 @@ impl<'a, 'gcx, 'tcx> FnCtxt<'a, 'gcx, 'tcx> {
                             expected_arg_tys: &[Ty<'tcx>],
                             args: &'gcx [P<hir::Expr>],
                             variadic: bool,
-                            tuple_arguments: TupleArgumentsFlag) {
+                            tuple_arguments: TupleArgumentsFlag) -> bool {
         let tcx = self.tcx;
 
         // Grab the argument types, supplying fresh type variables
@@ -2492,6 +2493,7 @@ impl<'a, 'gcx, 'tcx> FnCtxt<'a, 'gcx, 'tcx> {
         // right way to do this.
         let xs = [false, true];
         let mut any_diverges = false; // has any of the arguments diverged?
+        let mut any_err = false; // have any of the arguments failed to typecheck
         let mut warned = false; // have we already warned about unreachable code?
         for check_blocks in &xs {
             let check_blocks = *check_blocks;
@@ -2557,6 +2559,7 @@ impl<'a, 'gcx, 'tcx> FnCtxt<'a, 'gcx, 'tcx> {
                     any_diverges = any_diverges ||
                                    self.type_var_diverges(arg_ty) ||
                                    arg_ty.is_never();
+                    any_err = any_err || arg_ty.references_error();
                 }
             }
             if any_diverges && !warned {
@@ -2616,6 +2619,7 @@ impl<'a, 'gcx, 'tcx> FnCtxt<'a, 'gcx, 'tcx> {
                 }
             }
         }
+        !any_err
     }
 
     fn err_args(&self, len: usize) -> Vec<Ty<'tcx>> {
@@ -2814,12 +2818,15 @@ impl<'a, 'gcx, 'tcx> FnCtxt<'a, 'gcx, 'tcx> {
         };
 
         // Call the generic checker.
-        let ret_ty = self.check_method_argument_types(method_name.span, fn_ty,
-                                                      expr, &args[1..],
-                                                      DontTupleArguments,
-                                                      expected);
-
-        self.write_ty(expr.id, ret_ty)
+        let (ret_ty, args_ok) = self.check_method_argument_types(method_name.span, fn_ty,
+                                                                 expr, &args[1..],
+                                                                 DontTupleArguments,
+                                                                 expected);
+        if args_ok {
+            self.write_ty(expr.id, ret_ty)
+        } else {
+            self.write_error(expr.id)
+        }
     }
 
     // A generic function for checking the then and else in an if
@@ -3503,15 +3510,7 @@ impl<'a, 'gcx, 'tcx> FnCtxt<'a, 'gcx, 'tcx> {
               ret_ty
           }
           hir::ExprMethodCall(name, ref tps, ref args) => {
-              let ty = self.check_method_call(expr, name, &args[..], &tps[..], expected, lvalue_pref);
-              let arg_tys = args.iter().map(|a| self.expr_ty(&a));
-              let args_err = arg_tys.fold(false, |rest_err, a| rest_err || a.references_error());
-              if args_err {
-                  self.write_error(id)
-              }
-              else {
-                  ty
-              }
+              self.check_method_call(expr, name, &args[..], &tps[..], expected, lvalue_pref)
           }
           hir::ExprCast(ref e, ref t) => {
             if let hir::TyFixedLengthVec(_, ref count_expr) = t.node {
