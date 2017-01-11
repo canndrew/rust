@@ -157,7 +157,11 @@ pub enum TypeVariants<'tcx> {
     TyNever,
 
     /// A tuple type.  For example, `(i32, bool)`.
-    TyTuple(&'tcx Slice<Ty<'tcx>>),
+    /// The bool indicates whether this is a unit tuple and was created by
+    /// defaulting a diverging type variable with feature(never_type) disabled.
+    /// It's only purpose is for raising future-compatibility warnings for when
+    /// diverging type variables start defaulting to ! instead of ().
+    TyTuple(&'tcx Slice<Ty<'tcx>>, bool),
 
     /// The projection of an associated type.  For example,
     /// `<T as Trait<..>>::N`.
@@ -967,7 +971,7 @@ impl<'a, 'gcx, 'tcx> TyS<'tcx> {
 
     pub fn is_nil(&self) -> bool {
         match self.sty {
-            TyTuple(ref tys) => tys.is_empty(),
+            TyTuple(ref tys, _) => tys.is_empty(),
             _ => false
         }
     }
@@ -1344,7 +1348,7 @@ impl<'a, 'gcx, 'tcx> TyS<'tcx> {
             TySlice(_) |
             TyRawPtr(_) |
             TyNever |
-            TyTuple(_) |
+            TyTuple(..) |
             TyParam(_) |
             TyInfer(_) |
             TyError => {

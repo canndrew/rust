@@ -539,7 +539,7 @@ impl<'a, 'tcx> ImproperCTypesVisitor<'a, 'tcx> {
                            consider using a `*const libc::c_char`")
             }
 
-            ty::TyTuple(_) => {
+            ty::TyTuple(..) => {
                 FfiUnsafe("found Rust tuple type in foreign module; \
                            consider using a struct instead")
             }

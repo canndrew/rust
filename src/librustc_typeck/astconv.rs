@@ -634,7 +634,7 @@ impl<'o, 'gcx: 'tcx, 'tcx> AstConv<'gcx, 'tcx>+'o {
             span: output_span
         };
 
-        (self.tcx().mk_ty(ty::TyTuple(inputs)), output_binding)
+        (self.tcx().mk_ty(ty::TyTuple(inputs, false)), output_binding)
     }
 
     pub fn instantiate_poly_trait_ref(&self,
@@ -1557,7 +1557,7 @@ impl<'o, 'gcx: 'tcx, 'tcx> AstConv<'gcx, 'tcx>+'o {
                 tcx.types.never
             },
             hir::TyTup(ref fields) => {
-                tcx.mk_tup(fields.iter().map(|t| self.ast_ty_to_ty(rscope, &t)))
+                tcx.mk_tup(fields.iter().map(|t| self.ast_ty_to_ty(rscope, &t)), false)
             }
             hir::TyBareFn(ref bf) => {
                 require_c_abi_if_variadic(tcx, &bf.decl, bf.abi, ast_ty.span);
