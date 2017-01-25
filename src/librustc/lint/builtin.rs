@@ -194,7 +194,7 @@ declare_lint! {
 
 declare_lint! {
     pub RESOLVE_TRAIT_ON_DEFAULTED_UNIT,
-    Warn,
+    Deny,
     "attempt to resolve a trait on an expression whose type cannot be inferred but which \
      currently defaults to ()"
 }
